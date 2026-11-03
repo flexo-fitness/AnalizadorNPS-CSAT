@@ -714,13 +714,14 @@ function surveyScore(v){
 }
 function parseSprinklr(aoa){
   var z=headerIndex(aoa,['Case Id']);if(!z)throw new Error('Sprinklr: no encontré la columna Case Id.');
-  var h=z.h,C={id:h.indexOf('Case Id'),dt:findCol(h,[function(n){return /case creation time \(survey\)/.test(n)},function(n){return /creation time/.test(n)}]),cs:findCol(h,[function(n){return /satisfaction survey.*please rate|satisfaction.*rate/.test(n)&&!/not that satisfied/.test(n)}]),np:findCol(h,[function(n){return /based on your recent experience.*likely|how likely would you be/.test(n)},function(n){return /recommend/.test(n)}]),ag:findCol(h,[function(n){return /last engaged user \(caso\)/.test(n)},function(n){return /case owner|owner|agent|specialist|assignee/.test(n)}]),brand:findCol(h,[function(n){return /brand \(case\)/.test(n)}]),country:findCol(h,[function(n){return /country/.test(n)}]),sku:findCol(h,[function(n){return /product code/.test(n)}]),sub:findCol(h,[function(n){return /subject code/.test(n)}]),tipo:findCol(h,[function(n){return /case type/.test(n)}])};
+  var h=z.h,C={id:h.indexOf('Case Id'),dt:findCol(h,[function(n){return /case creation time \(survey\)/.test(n)},function(n){return /creation time/.test(n)}]),cs:findCol(h,[function(n){return /satisfaction survey.*please rate|satisfaction.*rate/.test(n)&&!/not that satisfied/.test(n)}]),np:findCol(h,[function(n){return /based on your recent experience.*likely|how likely would you be/.test(n)},function(n){return /recommend/.test(n)}]),ag:findCol(h,[function(n){return /last engaged user/.test(n)},function(n){return /last engaged|engaged user/.test(n)},function(n){return /case owner|owner|agent|specialist|assignee/.test(n)}]),brand:findCol(h,[function(n){return /brand \(case\)/.test(n)}]),country:findCol(h,[function(n){return /country/.test(n)}]),sku:findCol(h,[function(n){return /product code/.test(n)}]),sub:findCol(h,[function(n){return /subject code/.test(n)}]),tipo:findCol(h,[function(n){return /case type/.test(n)}])};
   if(C.dt<0)throw new Error('Sprinklr: no encontré Case Creation Time (Survey).');
+  if(C.ag<0)console.warn('Sprinklr: no encontré la columna del especialista (Last Engaged User).');
   var map={};
   for(var i=z.row+1;i<aoa.length;i++){
     var row=aoa[i],id=s(row[C.id]).trim();if(!id)continue;
     var d=parseDate(row[C.dt]),c=map[id];
-    if(!c)c=map[id]={id:id,source:'Sprinklr',ag:C.ag>=0?s(row[C.ag]):'',date:d,day:day(d),hora:d?d.getHours():null,csat:C.cs>=0?surveyScore(row[C.cs]):null,nps:C.np>=0?surveyScore(row[C.np]):null,ver:'',brand:C.brand>=0?s(row[C.brand]):'',sku:C.sku>=0?s(row[C.sku]):'',country:C.country>=0?s(row[C.country]):'',sub:C.sub>=0?s(row[C.sub]):'',tipo:C.tipo>=0?s(row[C.tipo]):'',attr:'',why:'',mx:''};
+    if(!c)c=map[id]={id:id,source:'Sprinklr',ag:C.ag>=0?s(row[C.ag]).replace(/\s+/g,' ').trim():'',date:d,day:day(d),hora:d?d.getHours():null,csat:C.cs>=0?surveyScore(row[C.cs]):null,nps:C.np>=0?surveyScore(row[C.np]):null,ver:'',brand:C.brand>=0?s(row[C.brand]):'',sku:C.sku>=0?s(row[C.sku]):'',country:C.country>=0?s(row[C.country]):'',sub:C.sub>=0?s(row[C.sub]):'',tipo:C.tipo>=0?s(row[C.tipo]):'',attr:'',why:'',mx:''};
     else{if(c.csat==null&&C.cs>=0)c.csat=surveyScore(row[C.cs]);if(c.nps==null&&C.np>=0)c.nps=surveyScore(row[C.np]);}
   }
   return Object.keys(map).map(function(k){return map[k]}).filter(function(c){return c.day})
@@ -769,7 +770,7 @@ function hasAnySource(){
   return allCases('GCCP').length>0 || allCases('Sprinklr').length>0;
 }
 function hasBothSources(){return allCases('GCCP').length>0 && allCases('Sprinklr').length>0;}
-function specKey(c){return norm(c.ag)||'__sin__'}
+function specKey(c){return norm(s(c.ag).replace(/\s+/g,' '))||'__sin__'}
 function specGroups(list){
   var m={},o=[];
   list.forEach(function(c){var k=specKey(c);if(!m[k]){m[k]={name:s(c.ag).trim()||'Sin especialista identificado',all:[],by:{GCCP:[],Sprinklr:[]}};o.push(k)}m[k].all.push(c);m[k].by[c.source].push(c)});
