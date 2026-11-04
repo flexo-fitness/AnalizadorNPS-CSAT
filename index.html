@@ -109,6 +109,7 @@ tr.mu td{color:var(--mu)}
   <button type="button" role="tab" id="tA" aria-selected="true">Análisis del reporte de casos</button>
   <button type="button" role="tab" id="tM" aria-selected="false">Matriz de calidad</button>
   <button type="button" role="tab" id="tB" aria-selected="false">Calculadora NPS y CSAT</button>
+  <button type="button" role="tab" id="tAc" aria-selected="false">Acuracidad</button>
 </nav>
 <div id="vAn">
   <header>
@@ -266,6 +267,46 @@ tr.mu td{color:var(--mu)}
 </div>
 </div>
 
+<div id="vAc" hidden>
+<header>
+  <div>
+    <h1>Acuracidad — calidad y exactitud de datos</h1>
+    <p>Carga el Excel de acuracidad (hoja “Base”, la auditoría de casos) y calcula los 4 indicadores contra su meta oficial: detección de AE/PQC en redes sociales, acuracidad GCCP, calidad de datos en AE y calidad de datos en PQC.</p>
+  </div>
+</header>
+<div class="card">
+  <h2>Cargar base de acuracidad</h2>
+  <p class="sub">Puedes subir uno o varios archivos con el mismo formato (por ejemplo, uno de GCCP y otro de Sprinklr). La plataforma se toma de la columna PLATAFORMA; si no existe, se asume GCCP. El archivo se procesa solo en tu navegador.</p>
+  <div class="drop" style="margin:0"><input id="acFile" type="file" multiple accept=".xlsx,.xls,.csv" aria-label="Cargar Excel de acuracidad"><p class="mu" id="acMsg" style="margin:8px 0 0" role="status">Esperando archivo.</p></div>
+  <div class="row row5" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr));margin-top:14px">
+    <div><label for="mSoc">Meta Social Media (%)</label><input id="mSoc" type="number" step="0.1" value="98"></div>
+    <div><label for="mGccp">Meta GCCP (%)</label><input id="mGccp" type="number" step="0.1" value="98"></div>
+    <div><label for="mAe">Meta Calidad AE (%)</label><input id="mAe" type="number" step="0.1" value="95"></div>
+    <div><label for="mPqc">Meta Calidad PQC (%)</label><input id="mPqc" type="number" step="0.1" value="97"></div>
+    <div><label for="acEsp">Especialista</label><select id="acEsp"><option value="">Todos</option></select></div>
+  </div>
+  <div class="btns" style="margin-top:12px;justify-content:flex-end"><button type="button" id="acXls" style="background:var(--ac);border-color:var(--ac);color:var(--sf)">Exportar Excel</button><button type="button" id="acRst">↺ Limpiar</button></div>
+</div>
+<div id="acOut" hidden>
+  <div class="stats" id="acKpi" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))"></div>
+  <p class="mu" id="acCov"></p>
+  <div class="card"><h2>Por especialista</h2><p class="sub">Los porcentajes se calculan sobre los casos revisados de cada persona. En rojo, lo que está por debajo de la meta.</p><div class="tw"><table id="acTe"></table></div></div>
+  <div class="card"><h2>Por día</h2><p class="sub">Según “Dia conhecimeto do caso” (o la fecha de apertura si no viene).</p><div class="tw"><table id="acTd"></table></div></div>
+  <div class="card"><h2>Tipos de error</h2><p class="sub">Cuenta cada error registrado en ERRO PRINCIPAL y ERRO 2–4, separado por la evaluación del caso.</p><div class="tw"><table id="acTr"></table></div></div>
+  <div class="card"><h2>Casos con error</h2><p class="sub">Casos con error crítico o no crítico. <label style="display:inline;color:inherit"><input type="checkbox" id="acFb" style="width:auto"> Incluir también los de Feedback (oportunidad, no cuenta como error)</label></p><div class="tw"><table id="acTc"></table></div></div>
+  <div class="card" style="font-size:.9rem;color:var(--mu)">
+    <b style="color:var(--ink)">Cómo se calcula</b>
+    <ul style="margin:6px 0 0;padding-left:20px">
+      <li><b>Revisado</b> = caso con valor en AVALIAÇÃO DO CASO. <b>Error crítico</b> = “ERRO CRÍTICO”; <b>error no crítico</b> = “ERRO NÃO CRÍTICO”. “FEEDBACK” es oportunidad y no resta.</li>
+      <li><b>Social Media</b> (meta ≥ 98%) = casos revisados de Sprinklr sin error crítico ÷ revisados de Sprinklr.</li>
+      <li><b>GCCP</b> (meta ≥ 98%) = casos revisados de GCCP sin error crítico ÷ revisados de GCCP.</li>
+      <li><b>Calidad AE</b> (meta ≥ 95%) = casos revisados de GCCP con asunto MED (AE) sin error no crítico ÷ revisados con asunto MED.</li>
+      <li><b>Calidad PQC</b> (meta ≥ 97%) = casos revisados de GCCP con asunto PQC sin error no crítico ÷ revisados con asunto PQC. Un caso con MED y PQC cuenta en ambos.</li>
+      <li>El tipo de asunto se lee de “Subject Summary”. El margen indica cuántos errores más se toleran antes de bajar de la meta.</li>
+    </ul>
+  </div>
+</div>
+</div>
 <script>
 var $=function(i){return document.getElementById(i)};
 var IDS=['nombre','p','pa','d','c1','c2','c3','c4','c5','c6','c7','metaN','metaC'];
@@ -645,8 +686,8 @@ var dz=$a('drop');
 ['dragleave','drop'].forEach(function(ev){dz.addEventListener(ev,function(e){e.preventDefault();dz.classList.remove('on')})});
 dz.addEventListener('drop',function(e){handle(e.dataTransfer.files[0])});
 $a('fAg').addEventListener('change',render);$a('fRi').addEventListener('change',render);$a('csv').addEventListener('click',csv);
-function tab(n){['vAn','vMx','vCalc'].forEach(function(id,i){$a(id).hidden=i!==n});['tA','tM','tB'].forEach(function(id,i){$a(id).setAttribute('aria-selected',i===n)})}
-$a('tA').addEventListener('click',function(){tab(0)});$a('tM').addEventListener('click',function(){tab(1)});$a('tB').addEventListener('click',function(){tab(2)});
+function tab(n){['vAn','vMx','vCalc','vAc'].forEach(function(id,i){$a(id).hidden=i!==n});['tA','tM','tB','tAc'].forEach(function(id,i){$a(id).setAttribute('aria-selected',i===n)})}
+$a('tA').addEventListener('click',function(){tab(0)});$a('tM').addEventListener('click',function(){tab(1)});$a('tB').addEventListener('click',function(){tab(2)});$a('tAc').addEventListener('click',function(){tab(3)});
 function re(){if(LAST){try{D=analyze(LAST);render()}catch(e){}}}
 $a('pSla').addEventListener('change',re);$a('pMail').addEventListener('change',re);
 buildMx();
@@ -1040,6 +1081,151 @@ $x('xDt').addEventListener('focusout',function(e){
 });
 refreshDay();render();updateState();
 window.__x={calc:calc,parseGCCP:parseGCCP,parseSprinklr:parseSprinklr,allCurrent:allCurrent};
+})();
+</script>
+<script>
+(function(){
+var $=function(i){return document.getElementById(i)};
+function s(v){return v==null?'':String(v)}
+function clean(v){return s(v).replace(/[\s ]+/g,' ').trim()}
+function norm(v){return clean(v).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'')}
+function esc(t){return s(t).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function pad(n){return('0'+n).slice(-2)}
+function pDate(v){
+  if(v instanceof Date&&!isNaN(v.getTime()))return v;
+  if(typeof v==='number'&&isFinite(v))return new Date(Math.round((v-25569)*86400000));
+  var z=clean(v),m;if(!z)return null;
+  m=/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/.exec(z);if(m)return new Date(+m[1],+m[2]-1,+m[3]);
+  m=/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})/.exec(z);if(m)return new Date(+m[3],+m[2]-1,+m[1]);
+  return null;
+}
+function dkey(d){return d?d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()):'Sin fecha'}
+function dlab(k){var p=k.split('-');return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:k}
+var ROWS=[],FILES=[],DUP=0;
+function findHeader(aoa){
+  for(var i=0;i<Math.min(aoa.length,30);i++){
+    var h=aoa[i].map(norm);
+    if(h.indexOf('numero do caso')>=0&&h.indexOf('avaliacao do caso')>=0)return{row:i,h:h};
+  }
+  return null;
+}
+function col(h,names,starts){
+  for(var j=0;j<names.length;j++){var i=h.indexOf(names[j]);if(i>=0)return i}
+  if(starts)for(var k=0;k<h.length;k++)if(h[k].indexOf(starts)===0)return k;
+  return-1;
+}
+function parseBase(aoa){
+  var z=findHeader(aoa);if(!z)return null;
+  var h=z.h,C={id:col(h,['numero do caso']),day:col(h,['dia conhecimeto do caso','dia conhecimento do caso'],'dia conhec'),open:col(h,['data de abertura']),own:col(h,['proprietario do caso']),sum:col(h,['subject summary']),plat:col(h,['plataforma']),ev:col(h,['avaliacao do caso']),e1:col(h,['erro principal']),e2:col(h,['erro 2']),e3:col(h,['erro 3']),e4:col(h,['erro 4']),ok:col(h,['assunto correto']),esp:col(h,['especialista']),desc:col(h,['descricao da atividade']),by:col(h,['analisado por'])};
+  var out=[];
+  for(var i=z.row+1;i<aoa.length;i++){
+    var r=aoa[i],id=clean(r[C.id]);if(!id)continue;
+    function g(c){return c>=0?r[c]:''}
+    var evn=norm(g(C.ev)),ev=evn===''?'':/nao critico/.test(evn)?'NC':/critico/.test(evn)?'C':/feedback/.test(evn)?'F':/correto/.test(evn)?'OK':'X';
+    var toks=clean(g(C.sum)).toUpperCase().split(/[,;\s]+/);
+    var d=pDate(g(C.day))||pDate(g(C.open));
+    var plat=/sprinklr/i.test(clean(g(C.plat)))?'Sprinklr':'GCCP';
+    var errs=[C.e1,C.e2,C.e3,C.e4].map(function(c){return c>=0?clean(r[c]):''}).filter(Boolean);
+    out.push({id:id,plat:plat,day:dkey(d),esp:clean(g(C.esp))||clean(g(C.own))||'Sin especialista',ev:ev,rev:ev!=='',ae:toks.indexOf('MED')>=0||toks.indexOf('AE')>=0||toks.indexOf('EA')>=0,pqc:toks.indexOf('PQC')>=0,errs:errs,ok:clean(g(C.ok)),desc:clean(g(C.desc)),by:clean(g(C.by))});
+  }
+  var canon={};out.forEach(function(c){var k=norm(c.esp);if(!canon[k])canon[k]=c.esp;c.esp=canon[k]});
+  return out;
+}
+function pct(a,b){return b?a/b*100:null}
+function ind(list){
+  var rev=list.filter(function(c){return c.rev}),G=rev.filter(function(c){return c.plat==='GCCP'}),S=rev.filter(function(c){return c.plat==='Sprinklr'});
+  function mk(l,bad){var n=l.length,e=l.filter(bad).length;return{n:n,e:e,v:pct(n-e,n)}}
+  var crit=function(c){return c.ev==='C'},nc=function(c){return c.ev==='NC'};
+  return{soc:mk(S,crit),gccp:mk(G,crit),ae:mk(G.filter(function(c){return c.ae}),nc),pqc:mk(G.filter(function(c){return c.pqc}),nc),rev:rev.length,tot:list.length,c:rev.filter(crit).length,nc:rev.filter(nc).length,f:rev.filter(function(c){return c.ev==='F'}).length,x:rev.filter(function(c){return c.ev==='X'}).length};
+}
+function metas(){function m(i,d){var v=parseFloat($(i).value);return isFinite(v)?v:d}return{soc:m('mSoc',98),gccp:m('mGccp',98),ae:m('mAe',95),pqc:m('mPqc',97)}}
+function f2(v){return v==null?'–':v.toFixed(2)+'%'}
+function cell(x,meta){if(!x||x.v==null)return'–';var ok=x.v>=meta-1e-9;return'<span class="'+(ok?'sc-a':'sc-b')+'"><b>'+f2(x.v)+'</b></span> <span class="mu">('+(x.n-x.e)+'/'+x.n+')</span>'}
+function tbl(h,rows){return'<tr>'+h.map(function(x){return'<th>'+x+'</th>'}).join('')+'</tr>'+(rows.length?rows.map(function(r){return'<tr>'+r.map(function(x){return'<td>'+x+'</td>'}).join('')+'</tr>'}).join(''):'<tr><td colspan="'+h.length+'" class="mu">Sin datos.</td></tr>')}
+function current(){var e=$('acEsp').value;return e?ROWS.filter(function(c){return c.esp===e}):ROWS}
+function groupBy(list,fn){var m={},o=[];list.forEach(function(c){var k=fn(c);if(!m[k]){m[k]=[];o.push(k)}m[k].push(c)});return o.map(function(k){return[k,m[k]]})}
+function kpi(t,x,meta,rule){
+  if(x.v==null)return'<div class="kpi"><small>'+t+'</small><b class="mu">–</b><span class="sm">Meta ≥ '+meta+'% · sin casos revisados en esta base</span></div>';
+  var ok=x.v>=meta-1e-9,allowed=Math.floor(x.n*(1-meta/100)+1e-9),mg=allowed-x.e;
+  return'<div class="kpi"><small>'+t+'</small><b class="'+(ok?'sc-a':'sc-b')+'">'+f2(x.v)+'</b><span class="tag" style="'+(ok?'':'background:var(--det);color:#fff')+'">'+(ok?'Cumple':'No cumple')+' · meta ≥ '+meta+'%</span><span class="sm">'+(x.n-x.e)+' de '+x.n+' '+rule+'</span><span class="sm">'+(ok?'Margen: '+mg+' error'+(mg===1?'':'es')+' más':'Excede la tolerancia por '+(-mg)+' error'+(mg===-1?'':'es'))+'</span></div>';
+}
+function render(){
+  $('acOut').hidden=!ROWS.length;if(!ROWS.length)return;
+  var M=metas(),L=current(),I=ind(L);
+  $('acKpi').innerHTML=kpi('Detección AE/PQC — Social Media',I.soc,M.soc,'mensajes sin error crítico')+kpi('Acuracidad de captura GCCP',I.gccp,M.gccp,'casos sin error crítico')+kpi('Calidad de datos AE (no críticos)',I.ae,M.ae,'registros AE sin error no crítico')+kpi('Calidad de datos PQC (no críticos)',I.pqc,M.pqc,'registros PQC sin error no crítico');
+  $('acCov').innerHTML='Casos en base: <b>'+I.tot+'</b> · Revisados: <b>'+I.rev+'</b> ('+(I.tot?(I.rev/I.tot*100).toFixed(1):'0')+'%) · Sin revisar: <b>'+(I.tot-I.rev)+'</b> · Error crítico: <b>'+I.c+'</b> · No crítico: <b>'+I.nc+'</b> · Feedback: <b>'+I.f+'</b>'+(I.x?' · <b class="sc-b">Sin clasificar ('+I.x+'): revisa AVALIAÇÃO DO CASO</b>':'')+(DUP?' · Duplicados ignorados: '+DUP:'')+(I.soc.n===0?'<br>No hay casos de Sprinklr en lo cargado: el indicador de Social Media queda sin datos hasta que subas una base con PLATAFORMA = Sprinklr.':'');
+  var sp=groupBy(L,function(c){return c.esp}).sort(function(a,b){return a[0].localeCompare(b[0])}).map(function(g){var i=ind(g[1]);return[esc(g[0]),i.rev+' / '+i.tot,i.c,i.nc,i.f,cell(i.gccp,M.gccp),cell(i.ae,M.ae),cell(i.pqc,M.pqc),cell(i.soc,M.soc)]});
+  var t=I;sp.push(['<b>Total</b>',t.rev+' / '+t.tot,t.c,t.nc,t.f,cell(t.gccp,M.gccp),cell(t.ae,M.ae),cell(t.pqc,M.pqc),cell(t.soc,M.soc)]);
+  $('acTe').innerHTML=tbl(['Especialista','Revisados / total','Crít.','No crít.','Feedback','GCCP','Calidad AE','Calidad PQC','Social'],sp);
+  var dy=groupBy(L,function(c){return c.day}).sort(function(a,b){return a[0]<b[0]?-1:1}).map(function(g){var i=ind(g[1]);return[dlab(g[0]),i.rev+' / '+i.tot,i.c,i.nc,i.f,cell(i.gccp,M.gccp),cell(i.ae,M.ae),cell(i.pqc,M.pqc)]});
+  $('acTd').innerHTML=tbl(['Día','Revisados / total','Crít.','No crít.','Feedback','GCCP','Calidad AE','Calidad PQC'],dy);
+  var er={};L.filter(function(c){return c.rev}).forEach(function(c){c.errs.forEach(function(e){var o=er[e]||(er[e]={t:0,C:0,NC:0,F:0,OK:0,X:0});o.t++;o[c.ev]++})});
+  var ers=Object.keys(er).sort(function(a,b){return er[b].t-er[a].t}).map(function(k){var o=er[k];return[esc(k),o.t,o.C,o.NC,o.F]});
+  $('acTr').innerHTML=tbl(['Error registrado','Total','En crítico','En no crítico','En feedback'],ers);
+  var inc=$('acFb').checked,lab={C:'Crítico',NC:'No crítico',F:'Feedback',X:'Sin clasificar'};
+  var cs=L.filter(function(c){return c.ev==='C'||c.ev==='NC'||c.ev==='X'||(inc&&c.ev==='F')}).sort(function(a,b){return a.esp.localeCompare(b.esp)||(a.day<b.day?-1:1)}).map(function(c){return[esc(c.id),dlab(c.day),esc(c.esp),c.plat,'<b class="'+(c.ev==='C'?'sc-b':c.ev==='NC'?'sc-m':'')+'">'+lab[c.ev]+'</b>',esc(c.errs.join(' · ')),esc(c.ok),esc(c.desc)]});
+  $('acTc').innerHTML=tbl(['Caso','Día','Especialista','Plataforma','Evaluación','Error(es)','Asunto correcto','Descripción'],cs);
+}
+function refreshEsp(){
+  var cur=$('acEsp').value,names=[];ROWS.forEach(function(c){if(names.indexOf(c.esp)<0)names.push(c.esp)});names.sort(function(a,b){return a.localeCompare(b)});
+  $('acEsp').innerHTML='<option value="">Todos</option>'+names.map(function(n){return'<option value="'+esc(n)+'">'+esc(n)+'</option>'}).join('');
+  $('acEsp').value=names.indexOf(cur)>=0?cur:'';
+}
+function readFile(file){
+  return new Promise(function(res,rej){
+    var r=new FileReader();
+    r.onload=function(e){try{
+      if(typeof XLSX==='undefined')throw new Error('No cargó la librería de Excel. Revisa tu conexión y recarga la página.');
+      var wb=XLSX.read(e.target.result,{type:'array',cellDates:true}),names=wb.SheetNames.slice().sort(function(a,b){return(norm(b)==='base')-(norm(a)==='base')}),out=null;
+      for(var i=0;i<names.length&&!out;i++){out=parseBase(XLSX.utils.sheet_to_json(wb.Sheets[names[i]],{header:1,raw:true,defval:''}))}
+      if(!out)throw new Error(file.name+': no encontré las columnas “Número do caso” y “AVALIAÇÃO DO CASO”. Sube la hoja Base de acuracidad.');
+      res({name:file.name,rows:out});
+    }catch(err){rej(err)}};
+    r.onerror=function(){rej(new Error('No pude leer '+file.name))};
+    r.readAsArrayBuffer(file);
+  });
+}
+function addRows(list){
+  var seen={};ROWS.forEach(function(c){seen[c.plat+'|'+c.id]=1});
+  list.forEach(function(c){var k=c.plat+'|'+c.id;if(seen[k]){DUP++;return}seen[k]=1;ROWS.push(c)});
+}
+$('acFile').addEventListener('change',function(e){
+  var files=Array.prototype.slice.call(e.target.files||[]);if(!files.length)return;
+  $('acMsg').textContent='Leyendo…';
+  Promise.all(files.map(readFile)).then(function(rs){
+    rs.forEach(function(r){addRows(r.rows);FILES.push(r.name+' ('+r.rows.length+' casos)')});
+    refreshEsp();render();$('acMsg').textContent='Cargado: '+FILES.join(' · ');
+  }).catch(function(err){$('acMsg').textContent='⚠ '+err.message});
+  e.target.value='';
+});
+['mSoc','mGccp','mAe','mPqc'].forEach(function(i){$(i).addEventListener('input',render)});
+$('acEsp').addEventListener('change',render);$('acFb').addEventListener('change',render);
+$('acRst').addEventListener('click',function(){ROWS=[];FILES=[];DUP=0;refreshEsp();$('acOut').hidden=true;$('acMsg').textContent='Esperando archivo.'});
+$('acXls').addEventListener('click',function(){
+  if(!ROWS.length){alert('Carga primero la base de acuracidad.');return}
+  if(typeof XLSX==='undefined'){alert('No cargó la librería de Excel. Revisa tu conexión y recarga.');return}
+  var M=metas(),L=current(),I=ind(L);
+  function v(x){return x.v==null?'':Math.round(x.v*100)/100}
+  function st(x,m){return x.v==null?'Sin datos':x.v>=m-1e-9?'Cumple':'No cumple'}
+  var res=[['Acuracidad — calidad y exactitud de datos'],['Filtro especialista',$('acEsp').value||'Todos'],[],['Indicador','Meta (%)','Resultado (%)','Casos conformes','Casos revisados','Errores','Estado'],
+   ['Detección AE/PQC Social Media',M.soc,v(I.soc),I.soc.n-I.soc.e,I.soc.n,I.soc.e,st(I.soc,M.soc)],
+   ['Acuracidad GCCP',M.gccp,v(I.gccp),I.gccp.n-I.gccp.e,I.gccp.n,I.gccp.e,st(I.gccp,M.gccp)],
+   ['Calidad de datos AE (no críticos)',M.ae,v(I.ae),I.ae.n-I.ae.e,I.ae.n,I.ae.e,st(I.ae,M.ae)],
+   ['Calidad de datos PQC (no críticos)',M.pqc,v(I.pqc),I.pqc.n-I.pqc.e,I.pqc.n,I.pqc.e,st(I.pqc,M.pqc)],[],
+   ['Casos en base',I.tot],['Revisados',I.rev],['Error crítico',I.c],['Error no crítico',I.nc],['Feedback',I.f]];
+  function rowsEsp(g){var i=ind(g);return[i.rev,i.tot,i.c,i.nc,i.f,v(i.gccp),v(i.ae),v(i.pqc),v(i.soc)]}
+  var hE=['Revisados','Total','Crít.','No crít.','Feedback','GCCP %','Calidad AE %','Calidad PQC %','Social %'];
+  var esp=[['Especialista'].concat(hE)].concat(groupBy(L,function(c){return c.esp}).sort(function(a,b){return a[0].localeCompare(b[0])}).map(function(g){return[g[0]].concat(rowsEsp(g[1]))})).concat([['Total'].concat(rowsEsp(L))]);
+  var dia=[['Día'].concat(hE)].concat(groupBy(L,function(c){return c.day}).sort(function(a,b){return a[0]<b[0]?-1:1}).map(function(g){return[dlab(g[0])].concat(rowsEsp(g[1]))}));
+  var er={};L.filter(function(c){return c.rev}).forEach(function(c){c.errs.forEach(function(e){var o=er[e]||(er[e]={t:0,C:0,NC:0,F:0});o.t++;if(o[c.ev]!=null)o[c.ev]++})});
+  var err=[['Error registrado','Total','En crítico','En no crítico','En feedback']].concat(Object.keys(er).sort(function(a,b){return er[b].t-er[a].t}).map(function(k){return[k,er[k].t,er[k].C,er[k].NC,er[k].F]}));
+  var lab={C:'Crítico',NC:'No crítico',F:'Feedback',X:'Sin clasificar',OK:'Correcto','':'Sin revisar'};
+  var det=[['Caso','Día','Especialista','Plataforma','Evaluación','AE','PQC','Error(es)','Asunto correcto','Descripción']].concat(L.filter(function(c){return c.ev&&c.ev!=='OK'}).map(function(c){return[c.id,dlab(c.day),c.esp,c.plat,lab[c.ev],c.ae?'Sí':'',c.pqc?'Sí':'',c.errs.join(' · '),c.ok,c.desc]}));
+  var wb=XLSX.utils.book_new();
+  [['Resumen',res],['Por especialista',esp],['Por día',dia],['Errores',err],['Casos con observación',det]].forEach(function(x){XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(x[1]),x[0])});
+  XLSX.writeFile(wb,'Acuracidad-'+new Date().toISOString().slice(0,10)+'.xlsx');
+});
+window.__ac={parseBase:parseBase,ind:ind};
 })();
 </script>
 </body>
