@@ -290,6 +290,7 @@ tr.mu td{color:var(--mu)}
 <div id="acOut" hidden>
   <div class="stats" id="acKpi" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))"></div>
   <p class="mu" id="acCov"></p>
+  <div id="acRc"></div>
   <div class="card"><h2>Por especialista</h2><p class="sub">Los porcentajes se calculan sobre los casos revisados de cada persona. En rojo, lo que está por debajo de la meta.</p><div class="tw"><table id="acTe"></table></div></div>
   <div class="card"><h2>Por día</h2><p class="sub">Según “Dia conhecimeto do caso” (o la fecha de apertura si no viene).</p><div class="tw"><table id="acTd"></table></div></div>
   <div class="card"><h2>Tipos de error</h2><p class="sub">Cuenta cada error registrado en ERRO PRINCIPAL y ERRO 2–4, separado por la evaluación del caso.</p><div class="tw"><table id="acTr"></table></div></div>
@@ -1116,7 +1117,7 @@ function col(h,names,starts){
 }
 function parseBase(aoa){
   var z=findHeader(aoa);if(!z)return null;
-  var h=z.h,C={id:col(h,['numero do caso']),day:col(h,['dia conhecimeto do caso','dia conhecimento do caso'],'dia conhec'),open:col(h,['data de abertura']),own:col(h,['proprietario do caso']),sum:col(h,['subject summary']),plat:col(h,['plataforma']),ev:col(h,['avaliacao do caso']),e1:col(h,['erro principal']),e2:col(h,['erro 2']),e3:col(h,['erro 3']),e4:col(h,['erro 4']),ok:col(h,['assunto correto']),esp:col(h,['especialista']),desc:col(h,['descricao da atividade']),by:col(h,['analisado por'])};
+  var h=z.h,C={id:col(h,['numero do caso']),day:col(h,['dia conhecimeto do caso','dia conhecimento do caso'],'dia conhec'),open:col(h,['data de abertura']),own:col(h,['proprietario do caso']),sum:col(h,['subject summary']),plat:col(h,['plataforma']),ev:col(h,['avaliacao do caso']),e1:col(h,['erro principal']),e2:col(h,['erro 2']),e3:col(h,['erro 3']),e4:col(h,['erro 4']),ok:col(h,['assunto correto']),esp:col(h,['especialista']),desc:col(h,['descricao da atividade']),by:col(h,['analisado por']),ch:col(h,['tipo de comunicacao']),brand:col(h,['brand name'])};
   var out=[];
   for(var i=z.row+1;i<aoa.length;i++){
     var r=aoa[i],id=clean(r[C.id]);if(!id)continue;
@@ -1126,7 +1127,7 @@ function parseBase(aoa){
     var d=pDate(g(C.day))||pDate(g(C.open));
     var plat=/sprinklr/i.test(clean(g(C.plat)))?'Sprinklr':'GCCP';
     var errs=[C.e1,C.e2,C.e3,C.e4].map(function(c){return c>=0?clean(r[c]):''}).filter(Boolean);
-    out.push({id:id,plat:plat,day:dkey(d),esp:clean(g(C.esp))||clean(g(C.own))||'Sin especialista',ev:ev,rev:ev!=='',ae:toks.indexOf('MED')>=0||toks.indexOf('AE')>=0||toks.indexOf('EA')>=0,pqc:toks.indexOf('PQC')>=0,errs:errs,ok:clean(g(C.ok)),desc:clean(g(C.desc)),by:clean(g(C.by))});
+    out.push({id:id,plat:plat,day:dkey(d),esp:clean(g(C.esp))||clean(g(C.own))||'Sin especialista',ev:ev,rev:ev!=='',ae:toks.indexOf('MED')>=0||toks.indexOf('AE')>=0||toks.indexOf('EA')>=0,pqc:toks.indexOf('PQC')>=0,errs:errs,ch:(function(v){return norm(v)==='phone call'?'Teléfono':v})(clean(g(C.ch))),brand:clean(g(C.brand)),ok:clean(g(C.ok)),desc:clean(g(C.desc)),by:clean(g(C.by))});
   }
   var canon={};out.forEach(function(c){var k=norm(c.esp);if(!canon[k])canon[k]=c.esp;c.esp=canon[k]});
   return out;
@@ -1149,6 +1150,127 @@ function kpi(t,x,meta,rule){
   var ok=x.v>=meta-1e-9,allowed=Math.floor(x.n*(1-meta/100)+1e-9),mg=allowed-x.e;
   return'<div class="kpi"><small>'+t+'</small><b class="'+(ok?'sc-a':'sc-b')+'">'+f2(x.v)+'</b><span class="tag" style="'+(ok?'':'background:var(--det);color:#fff')+'">'+(ok?'Cumple':'No cumple')+' · meta ≥ '+meta+'%</span><span class="sm">'+(x.n-x.e)+' de '+x.n+' '+rule+'</span><span class="sm">'+(ok?'Margen: '+mg+' error'+(mg===1?'':'es')+' más':'Excede la tolerancia por '+(-mg)+' error'+(mg===-1?'':'es'))+'</span></div>';
 }
+/* ===== Causa raíz y patrones ===== */
+var MIN_N=30;
+var FAM=[
+ {k:'sob',n:'Asuntos AE/PQC sin sustento en el relato',re:/eli\w*minad|downgrad/,m:'Se registran asuntos que el relato del consumidor no respalda. Posible causa: se clasifica por palabra clave o por el tipo de producto sin contrastar cada asunto con evidencia textual del verbatim.'},
+ {k:'omi',n:'Asuntos AE/PQC omitidos',re:/asunto adicional|adicional de (pqc|loe)|asunto medico|caso adicional/,m:'Hay un AE/PQC en el relato que no se registró. Posible causa: lectura parcial del mensaje o foco solo en la consulta principal, sin revisar el resto del texto.'},
+ {k:'cod',n:'Código de asunto',re:/codigo del asunto/,m:'Código de asunto distinto al correcto. Posible causa: selección por parecido o duda sobre la matriz de asuntos para consultas y feedback.'},
+ {k:'prod',n:'Producto, lote y vencimiento',re:/lote|codigo de producto|concomitante|producto faltante|cantidad/,m:'Producto, lote o vencimiento mal transcritos o sin validar. Posible causa: tipeo o no verificar la foto o empaque antes de guardar.'},
+ {k:'fec',n:'Fecha de conocimiento',re:/fecha de conocimiento/,m:'Fecha de conocimiento incorrecta. Posible causa: confusión entre fecha de apertura, de recepción y de conocimiento del evento.'},
+ {k:'cons',n:'Datos del consumidor y de compra',re:/reportante|pais|lugar de compra|desajuste/,m:'Datos del consumidor o de compra incompletos (país, género, lugar de compra). Posible causa: no se preguntan o no se validan con el consumidor.'},
+ {k:'medq',n:'Cuestionario médico (Med Q)',re:/med q|cuestionario/,m:'Cuestionario médico incompleto o inconsistente. Posible causa: preguntas dependientes entre sí (ej. disponibilidad del producto) que no se revisan juntas.'},
+ {k:'doc',n:'Notas, verbatim y traducción',re:/nota del caso|verbatim|traduccion/,m:'Falta la justificación en notas o verbatim (SCN, misuse, soporte del asunto). Posible causa: no se documenta por qué se eligió el asunto.'},
+ {k:'adj',n:'Fotografías y adjuntos',re:/fotograf|adjunto/,m:'Fotos o adjuntos sin cargar o sin clasificar en la carpeta correcta. Posible causa: paso final del proceso que se olvida.'},
+ {k:'proc',n:'Pasos del proceso (clones, categorías, otra acción)',re:/clon|duplic|tipo de comunicacion|categoria|otra accion|reabierto/,m:'Pasos del proceso del caso sin completar o mal ejecutados. Posible causa: tareas secundarias que no se verifican antes de cerrar.'}
+];
+var FAM_NONE={k:'ninguno',n:'Sin motivo registrado',re:null,m:'El auditor no registró el tipo de error. Conviene pedir que lo complete para poder analizar la causa.'};
+function famOf(e){var n=norm(e);for(var i=0;i<FAM.length;i++)if(FAM[i].re.test(n))return FAM[i];return{k:'otro',n:'Otros',m:'Error que no encaja en las familias definidas: revisar el detalle.'}}
+function famsOfCase(c){
+  var seen={},out=[];
+  c.errs.forEach(function(e){var f=famOf(e);if(!seen[f.k]){seen[f.k]=1;out.push(f)}});
+  if(!out.length)out.push(FAM_NONE);
+  return out;
+}
+function isObs(c){return c.ev==='C'||c.ev==='NC'||c.ev==='F'}
+function isErr(c){return c.ev==='C'||c.ev==='NC'}
+function pc1(a,b){return b?a/b*100:null}
+function f1(v){return v==null?'–':v.toFixed(1)+'%'}
+function aggFam(list){
+  var m={},o=[];
+  list.filter(isObs).forEach(function(c){famsOfCase(c).forEach(function(f){
+    var r=m[f.k];if(!r){r=m[f.k]={f:f,n:0,err:0,fb:0,ag:{}};o.push(f.k)}
+    r.ag[c.esp]=(r.ag[c.esp]||0)+1;r.n++;if(isErr(c))r.err++;else r.fb++;
+  })});
+  return o.map(function(k){return m[k]}).sort(function(a,b){return b.err-a.err||b.n-a.n}).sort(function(a,b){return b.n-a.n||b.err-a.err});
+}
+function topKey(list,fn){
+  var m={};list.forEach(function(c){var k=fn(c);if(k)m[k]=(m[k]||0)+1});
+  var best=null;Object.keys(m).forEach(function(k){if(!best||m[k]>m[best])best=k});
+  return best?{k:best,n:m[best]}:null;
+}
+function groupRate(rev,fn,minN){
+  var m={},o=[];
+  rev.forEach(function(c){var k=fn(c)||'Sin dato';if(!m[k]){m[k]={k:k,n:0,err:0,fb:0};o.push(k)}var r=m[k];r.n++;if(isErr(c))r.err++;else if(c.ev==='F')r.fb++});
+  return o.map(function(k){var r=m[k];r.obs=r.err+r.fb;r.rate=pc1(r.obs,r.n);r.erate=pc1(r.err,r.n);return r}).filter(function(r){return r.n>=minN}).sort(function(a,b){return b.rate-a.rate});
+}
+function agentPattern(a,base){
+  var t=[],mot='';
+  if(a.n<MIN_N)t.push('Muestra pequeña ('+a.n+' revisados): tomarlo como referencia, no como patrón.');
+  if(!a.obs){t.push('Sin observaciones en lo revisado.');return{txt:t.join(' '),mot:''}}
+  var top=a.fams[0],share=top.n/a.obs;
+  if(a.obs>=3&&share>=0.5){t.push('Patrón recurrente: '+top.f.n+' ('+top.n+' de '+a.obs+' observaciones).');mot=top.f.m}
+  else if(a.obs>=3){t.push('Observaciones dispersas, sin causa dominante. Más frecuente: '+top.f.n+' ('+top.n+' de '+a.obs+').')}
+  else{t.push('Pocas observaciones ('+a.obs+'): no alcanzan para hablar de patrón.');mot=a.obs?top.f.m:''}
+  if(a.n>=MIN_N&&base.rate>0&&a.rate>=base.rate*1.5)t.push('Su tasa de observación ('+f1(a.rate)+') es al menos 1,5 veces la general ('+f1(base.rate)+').');
+  if(a.ch&&a.obs>=4&&a.ch.n/a.obs>=0.6)t.push('Se concentran en '+a.ch.k+' ('+a.ch.n+' de '+a.obs+').');
+  return{txt:t.join(' '),mot:mot};
+}
+function rcData(L){
+  var rev=L.filter(function(c){return c.rev}),obs=rev.filter(isObs),errs=rev.filter(isErr);
+  var all=ROWS.filter(function(c){return c.rev});
+  var base={n:all.length,obs:all.filter(isObs).length};base.rate=pc1(base.obs,base.n);
+  var fams=aggFam(L);
+  var famErr=aggFam(errs);
+  var ch=groupRate(rev,function(c){return c.ch},15),br=groupRate(rev,function(c){return c.brand},15);
+  var codes={};obs.forEach(function(c){var seen={};(c.desc.match(/\b[A-Z]{6,}\b/g)||[]).forEach(function(k){if(!seen[k]){seen[k]=1;codes[k]=(codes[k]||0)+1}})});
+  var codeRows=Object.keys(codes).map(function(k){return[k,codes[k]]}).sort(function(a,b){return b[1]-a[1]}).slice(0,8);
+  var ag=groupBy(L,function(c){return c.esp}).map(function(g){
+    var r=g[1].filter(function(c){return c.rev}),o=r.filter(isObs);
+    var a={name:g[0],n:r.length,err:r.filter(isErr).length,fb:r.filter(function(c){return c.ev==='F'}).length,obs:o.length};
+    a.rate=pc1(a.obs,a.n);a.fams=aggFam(g[1]);a.ch=topKey(o,function(c){return c.ch});
+    var p=agentPattern(a,base);a.pat=p.txt;a.mot=p.mot;return a;
+  }).filter(function(a){return a.n>0}).sort(function(a,b){return b.obs-a.obs||b.n-a.n});
+  var hall=[];
+  hall.push('De '+rev.length+' casos revisados, '+obs.length+' ('+f1(pc1(obs.length,rev.length))+') tuvieron observación: '+errs.length+' error'+(errs.length===1?'':'es')+' ('+rev.filter(function(c){return c.ev==='C'}).length+' crítico, '+rev.filter(function(c){return c.ev==='NC'}).length+' no crítico) y '+rev.filter(function(c){return c.ev==='F'}).length+' de feedback.');
+  if(fams.length){var t=fams[0];hall.push('Causa más frecuente: <b>'+esc(t.f.n)+'</b> ('+t.n+' de '+obs.length+', '+f1(pc1(t.n,obs.length))+'). '+esc(t.f.m))}
+  if(famErr.length){var e=famErr[0];hall.push('Entre los errores formales (críticos y no críticos), la causa que más pesa es <b>'+esc(e.f.n)+'</b> ('+e.n+' de '+errs.length+'). '+esc(e.f.m))}
+  var sob=fams.filter(function(x){return x.f.k==='sob'})[0],omi=fams.filter(function(x){return x.f.k==='omi'})[0];
+  if(sob||omi){hall.push('Clasificación de asuntos: '+(sob?sob.n+' caso'+(sob.n===1?'':'s')+' con asuntos sin sustento':'0 con asuntos sin sustento')+' y '+(omi?omi.n:0)+' con asuntos omitidos. '+((sob&&sob.n>(omi?omi.n:0))?'Pesa más sobre-clasificar que omitir: el riesgo está en justificar el asunto con el texto, no en dejar pasar eventos.':'Pesa más omitir que sobre-clasificar: el riesgo está en no detectar el AE/PQC.'))}
+  if(ch.length>1&&base.rate!=null){var c0=ch[0];if(c0.obs>=5&&c0.rate>base.rate*1.2)hall.push('Canal con más observaciones por caso: <b>'+esc(c0.k)+'</b> ('+f1(c0.rate)+' vs '+f1(base.rate)+' general, '+c0.obs+' de '+c0.n+').')}
+  if(codeRows.length)hall.push('Códigos de asunto que más cuestionan los auditores en sus descripciones: '+codeRows.slice(0,5).map(function(x){return'<b>'+esc(x[0])+'</b> ('+x[1]+')'}).join(', ')+'.');
+  var ind1=fams.filter(function(x){return x.n>=5&&/^Individual/.test(alcance(x))}).slice(0,3);
+  if(ind1.length)hall.push('Causas concentradas en una sola persona (más probable un tema individual que del equipo): '+ind1.map(function(x){return'<b>'+esc(x.f.n)+'</b> — '+esc(alcance(x).replace('Individual: ',''))}).join('; ')+'.');
+  var eq=fams.filter(function(x){return x.n>=5&&/^De equipo/.test(alcance(x))}).slice(0,3);
+  if(eq.length)hall.push('Causas repartidas en varios especialistas (más probable un tema de proceso o de capacitación): '+eq.map(function(x){return'<b>'+esc(x.f.n)+'</b> ('+x.n+')'}).join(', ')+'.');
+  var top3=ag.slice(0,3),sumTop=top3.reduce(function(s,a){return s+a.obs},0);
+  if(obs.length&&ag.length>3)hall.push('Los 3 especialistas con más observaciones ('+top3.map(function(a){return esc(a.name.split(' ').slice(0,2).join(' '))}).join(', ')+') concentran '+f1(pc1(sumTop,obs.length))+' de ellas, pero también son quienes más casos tienen revisados: compara la tasa, no solo el conteo.');
+  return{rev:rev.length,obs:obs.length,fams:fams,famErr:famErr,ch:ch,br:br,codes:codeRows,ag:ag,hall:hall,base:base};
+}
+function alcance(x){
+  var ks=Object.keys(x.ag),best=null;ks.forEach(function(k){if(!best||x.ag[k]>x.ag[best])best=k});
+  var nm=best?best.split(' ').slice(0,2).join(' '):'';
+  if(x.n<5)return'Pocos casos ('+x.n+')';
+  if(x.ag[best]/x.n>=0.6)return'Individual: '+nm+' ('+x.ag[best]+' de '+x.n+')';
+  var multi=ks.filter(function(k){return x.ag[k]>=2}).length;
+  return multi>=3?'De equipo: '+multi+' especialistas con 2 o más':'Repartida en '+ks.length+' especialista'+(ks.length===1?'':'s');
+}
+function famCell(x){return esc(x.f.n)}
+function renderRc(L){
+  var D=rcData(L),h='';
+  if(!D.rev){$('acRc').innerHTML='';return}
+  h+='<div class="card"><h2>Análisis de causa raíz y patrones</h2><p class="sub">Los motivos son <b>hipótesis para validar con el especialista y el auditor</b>: salen del tipo de error registrado y de lo que el auditor escribió en la descripción. Con pocos casos, un patrón puede ser coincidencia.</p>';
+  h+='<h3 class="st2">Hallazgos generales</h3><ul style="margin:6px 0 0;padding-left:20px">'+D.hall.map(function(x){return'<li>'+x+'</li>'}).join('')+'</ul></div>';
+  h+='<div class="card"><h2>Causas más frecuentes (general)</h2><p class="sub">Cada observación (error o feedback) se agrupa en una familia según el tipo de error registrado. Un caso con dos errores puede sumar en dos familias.</p><div class="tw"><table>'+tbl(['Familia de causa','Obs.','Errores','Feedback','% de obs.','Alcance','Posible motivo'],D.fams.map(function(x){return[famCell(x),x.n,x.err,x.fb,f1(pc1(x.n,D.obs)),esc(alcance(x)),esc(x.f.m)]}))+'</table></div></div>';
+  h+='<div class="card"><h2>Patrón por especialista</h2><p class="sub">Tasa de observación = (errores + feedback) / casos revisados. General: <b>'+f1(D.base.rate)+'</b>. Se marca “muestra pequeña” con menos de '+MIN_N+' revisados.</p><div class="tw"><table>'+tbl(['Especialista','Revisados','Errores','Feedback','Tasa obs.','Causa dominante','Patrón','Posible motivo'],D.ag.map(function(a){
+    var hi=a.n>=MIN_N&&D.base.rate>0&&a.rate>=D.base.rate*1.5;
+    return[esc(a.name),a.n,a.err,a.fb,'<span class="'+(hi?'sc-b':'')+'"><b>'+f1(a.rate)+'</b></span>',a.fams.length?esc(a.fams[0].f.n)+' <span class="mu">('+a.fams[0].n+')</span>':'–',esc(a.pat),esc(a.mot)||'<span class="mu">–</span>']}))+'</table></div></div>';
+  var fk=D.fams.slice(0,6);
+  h+='<div class="card"><h2>Mapa: especialista × causa</h2><p class="sub">Cantidad de observaciones por familia (se muestran las 6 más frecuentes). Sirve para ver si una causa se repite en la misma persona o en todo el equipo.</p><div class="tw"><table>'+tbl(['Especialista'].concat(fk.map(function(x){return esc(x.f.n)})),D.ag.filter(function(a){return a.obs>0}).map(function(a){return[esc(a.name)].concat(fk.map(function(x){var r=a.fams.filter(function(y){return y.f.k===x.f.k})[0];return r?'<b>'+r.n+'</b>':'<span class="mu">·</span>'}))}))+'</table></div></div>';
+  function gt(title,sub,rows){return'<div class="card"><h2>'+title+'</h2><p class="sub">'+sub+'</p><div class="tw"><table>'+tbl(['Grupo','Revisados','Errores','Feedback','Tasa obs.','Tasa de error'],rows.map(function(r){var hi=D.base.rate>0&&r.rate>=D.base.rate*1.2&&r.obs>=5;return[esc(r.k),r.n,r.err,r.fb,'<span class="'+(hi?'sc-b':'')+'"><b>'+f1(r.rate)+'</b></span>',f1(r.erate)]}))+'</table></div></div>'}
+  h+=gt('Patrón por canal','Solo grupos con al menos 15 casos revisados. En rojo, tasa al menos 20% sobre la general con 5 o más observaciones.',D.ch);
+  h+=gt('Patrón por marca','Solo marcas con al menos 15 casos revisados.',D.br);
+  if(D.codes.length)h+='<div class="card"><h2>Códigos de asunto citados en las descripciones</h2><p class="sub">Palabras en mayúscula de 6 o más letras que escriben los auditores (códigos de asunto). Indica qué asuntos se cuestionan más.</p><div class="tw"><table>'+tbl(['Código','Casos'],D.codes.map(function(x){return[esc(x[0]),x[1]]}))+'</table></div></div>';
+  $('acRc').innerHTML=h;
+}
+function plain(x){return s(x).replace(/<[^>]+>/g,'').replace(/&amp;/g,'&')}
+function rcSheets(L){
+  var D=rcData(L);
+  var a=[['Causa raíz y patrones — hipótesis para validar'],[]].concat(D.hall.map(function(x){return[plain(x)]})).concat([[],['Familia de causa','Observaciones','Errores','Feedback','% de obs.','Alcance','Posible motivo']]).concat(D.fams.map(function(x){return[x.f.n,x.n,x.err,x.fb,Math.round(pc1(x.n,D.obs)*10)/10,alcance(x),x.f.m]}));
+  var b=[['Especialista','Revisados','Errores','Feedback','Tasa obs. (%)','Causa dominante','Patrón','Posible motivo']].concat(D.ag.map(function(g){return[g.name,g.n,g.err,g.fb,Math.round(g.rate*10)/10,g.fams.length?g.fams[0].f.n:'',g.pat,g.mot]}));
+  var c=[['Canal / marca','Revisados','Errores','Feedback','Tasa obs. (%)','Tasa error (%)']].concat(D.ch.map(function(r){return['Canal: '+r.k,r.n,r.err,r.fb,Math.round(r.rate*10)/10,Math.round(r.erate*10)/10]})).concat(D.br.map(function(r){return['Marca: '+r.k,r.n,r.err,r.fb,Math.round(r.rate*10)/10,Math.round(r.erate*10)/10]}));
+  return[['Causa raíz',a],['Patrón por especialista',b],['Patrón canal y marca',c]];
+}
 function render(){
   $('acOut').hidden=!ROWS.length;if(!ROWS.length)return;
   var M=metas(),L=current(),I=ind(L);
@@ -1165,6 +1287,7 @@ function render(){
   var inc=$('acFb').checked,lab={C:'Crítico',NC:'No crítico',F:'Feedback',X:'Sin clasificar'};
   var cs=L.filter(function(c){return c.ev==='C'||c.ev==='NC'||c.ev==='X'||(inc&&c.ev==='F')}).sort(function(a,b){return a.esp.localeCompare(b.esp)||(a.day<b.day?-1:1)}).map(function(c){return[esc(c.id),dlab(c.day),esc(c.esp),c.plat,'<b class="'+(c.ev==='C'?'sc-b':c.ev==='NC'?'sc-m':'')+'">'+lab[c.ev]+'</b>',esc(c.errs.join(' · ')),esc(c.ok),esc(c.desc)]});
   $('acTc').innerHTML=tbl(['Caso','Día','Especialista','Plataforma','Evaluación','Error(es)','Asunto correcto','Descripción'],cs);
+  renderRc(L);
 }
 function refreshEsp(){
   var cur=$('acEsp').value,names=[];ROWS.forEach(function(c){if(names.indexOf(c.esp)<0)names.push(c.esp)});names.sort(function(a,b){return a.localeCompare(b)});
@@ -1222,10 +1345,10 @@ $('acXls').addEventListener('click',function(){
   var lab={C:'Crítico',NC:'No crítico',F:'Feedback',X:'Sin clasificar',OK:'Correcto','':'Sin revisar'};
   var det=[['Caso','Día','Especialista','Plataforma','Evaluación','AE','PQC','Error(es)','Asunto correcto','Descripción']].concat(L.filter(function(c){return c.ev&&c.ev!=='OK'}).map(function(c){return[c.id,dlab(c.day),c.esp,c.plat,lab[c.ev],c.ae?'Sí':'',c.pqc?'Sí':'',c.errs.join(' · '),c.ok,c.desc]}));
   var wb=XLSX.utils.book_new();
-  [['Resumen',res],['Por especialista',esp],['Por día',dia],['Errores',err],['Casos con observación',det]].forEach(function(x){XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(x[1]),x[0])});
+  [['Resumen',res],['Por especialista',esp],['Por día',dia],['Errores',err]].concat(rcSheets(L)).concat([['Casos con observación',det]]).forEach(function(x){XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(x[1]),x[0])});
   XLSX.writeFile(wb,'Acuracidad-'+new Date().toISOString().slice(0,10)+'.xlsx');
 });
-window.__ac={parseBase:parseBase,ind:ind};
+window.__ac={parseBase:parseBase,ind:ind,load:function(r){ROWS=[];addRows(r);refreshEsp();render()},rc:rcData};
 })();
 </script>
 </body>
