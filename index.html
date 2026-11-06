@@ -289,12 +289,12 @@ tr.mu td{color:var(--mu)}
 <header>
   <div>
     <h1>Acuracidad — calidad y exactitud de datos</h1>
-    <p>Carga el Excel de acuracidad (hoja “Base”, la auditoría de casos) y calcula los 4 indicadores contra su meta oficial: detección de AE/PQC en redes sociales, acuracidad GCCP, calidad de datos en AE y calidad de datos en PQC.</p>
+    <p>Carga el Excel de acuracidad (hoja “Base”, la auditoría de casos de GCCP y/o Sprinklr) y calcula los 4 indicadores contra su meta oficial: detección de AE/PQC en redes sociales, acuracidad GCCP, calidad de datos en AE y calidad de datos en PQC.</p>
   </div>
 </header>
 <div class="card">
   <h2>Cargar base de acuracidad</h2>
-  <p class="sub">Puedes subir uno o varios archivos con el mismo formato (por ejemplo, uno de GCCP y otro de Sprinklr). La plataforma se toma de la columna PLATAFORMA; si no existe, se asume GCCP. El archivo se procesa solo en tu navegador.</p>
+  <p class="sub">Puedes subir uno o varios archivos: uno de GCCP, otro de Sprinklr o ambos a la vez; se unifican en una sola base. Se reconocen automáticamente los dos formatos de la hoja “Base” (GCCP: Número do caso · Sprinklr: Case Number, Rede, Last Engaged User). La plataforma se toma de la columna PLATAFORMA; en Sprinklr cada fila es un mensaje analizado, igual que en el Excel. El archivo se procesa solo en tu navegador.</p>
   <div class="drop" style="margin:0"><input id="acFile" type="file" multiple accept=".xlsx,.xls,.csv" aria-label="Cargar Excel de acuracidad"><p class="mu" id="acMsg" style="margin:8px 0 0" role="status">Esperando archivo.</p></div>
   <div class="row row5" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr));margin-top:14px">
     <div><label for="mSoc">Meta Social Media (%)</label><input id="mSoc" type="number" step="0.1" value="98"></div>
@@ -327,7 +327,7 @@ tr.mu td{color:var(--mu)}
     <b style="color:var(--ink)">Cómo se calcula</b>
     <ul style="margin:6px 0 0;padding-left:20px">
       <li><b>Revisado</b> = caso con valor en AVALIAÇÃO DO CASO. <b>Error crítico</b> = “ERRO CRÍTICO”; <b>error no crítico</b> = “ERRO NÃO CRÍTICO”. “FEEDBACK” es oportunidad y no resta.</li>
-      <li><b>Social Media</b> (meta ≥ 98%) = casos revisados de Sprinklr sin error crítico ÷ revisados de Sprinklr.</li>
+      <li><b>Social Media</b> (meta ≥ 98%) = mensajes revisados de Sprinklr sin error crítico ÷ revisados de Sprinklr. En la base de Sprinklr cada fila es un mensaje analizado; el especialista se toma de ESPECIALISTA y, si está vacío, de “Last Engaged User”. Si un mismo caso se repite, se mantiene cada mensaje.</li>
       <li><b>GCCP</b> (meta ≥ 98%) = casos revisados de GCCP sin error crítico ÷ revisados de GCCP.</li>
       <li><b>Calidad AE</b> (meta ≥ 95%) = casos revisados de GCCP con asunto MED (AE) sin error no crítico ÷ revisados con asunto MED.</li>
       <li><b>Calidad PQC</b> (meta ≥ 97%) = casos revisados de GCCP con asunto PQC sin error no crítico ÷ revisados con asunto PQC. Un caso con MED y PQC cuenta en ambos.</li>
@@ -1134,7 +1134,7 @@ var ROWS=[],FILES=[],DUP=0;
 function findHeader(aoa){
   for(var i=0;i<Math.min(aoa.length,30);i++){
     var h=aoa[i].map(norm);
-    if(h.indexOf('numero do caso')>=0&&h.indexOf('avaliacao do caso')>=0)return{row:i,h:h};
+    if((h.indexOf('numero do caso')>=0||h.indexOf('case number')>=0)&&h.indexOf('avaliacao do caso')>=0)return{row:i,h:h};
   }
   return null;
 }
@@ -1145,17 +1145,21 @@ function col(h,names,starts){
 }
 function parseBase(aoa){
   var z=findHeader(aoa);if(!z)return null;
-  var h=z.h,C={id:col(h,['numero do caso']),day:col(h,['dia conhecimeto do caso','dia conhecimento do caso'],'dia conhec'),open:col(h,['data de abertura']),own:col(h,['proprietario do caso']),sum:col(h,['subject summary']),plat:col(h,['plataforma']),ev:col(h,['avaliacao do caso']),e1:col(h,['erro principal']),e2:col(h,['erro 2']),e3:col(h,['erro 3']),e4:col(h,['erro 4']),ok:col(h,['assunto correto']),esp:col(h,['especialista']),desc:col(h,['descricao da atividade']),by:col(h,['analisado por']),ch:col(h,['tipo de comunicacao']),brand:col(h,['brand name']),subj:col(h,['assuntos']),prod:col(h,['codigo do produto: descricao'])};
-  var out=[];
+  var h=z.h,SPK=h.indexOf('case number')>=0&&h.indexOf('numero do caso')<0;
+  /* Acepta el layout GCCP (Número do caso…) y el de Sprinklr (Case Number, Rede, Brand (Ticket), Last Engaged User…) */
+  var C={id:col(h,['numero do caso','case number']),day:col(h,['dia conhecimeto do caso','dia conhecimento do caso'],'dia conhec'),open:col(h,['data de abertura','case creation time']),own:col(h,['proprietario do caso','last engaged user (ticket)']),sum:col(h,['subject summary']),plat:col(h,['plataforma']),ev:col(h,['avaliacao do caso']),e1:col(h,['erro principal']),e2:col(h,['erro 2']),e3:col(h,['erro 3']),e4:col(h,['erro 4']),ok:col(h,['assunto correto']),esp:col(h,['especialista']),desc:col(h,['descricao da atividade']),by:col(h,['analisado por']),ch:col(h,['tipo de comunicacao','rede']),brand:col(h,['brand name','brand (ticket)']),subj:col(h,['assuntos','assunto principal']),prod:col(h,['codigo do produto: descricao','product code (ticket)']),msg:col(h,['inbound message']),cre:col(h,['created time'])};
+  if(C.day<0&&SPK)C.day=col(h,['data']);
+  var out=[],occ={};
   for(var i=z.row+1;i<aoa.length;i++){
     var r=aoa[i],id=clean(r[C.id]);if(!id)continue;
     function g(c){return c>=0?r[c]:''}
     var evn=norm(g(C.ev)),ev=evn===''?'':/nao critico/.test(evn)?'NC':/critico/.test(evn)?'C':/feedback/.test(evn)?'F':/correto/.test(evn)?'OK':'X';
     var toks=clean(g(C.sum)).toUpperCase().split(/[,;\s]+/);
     var d=pDate(g(C.day))||pDate(g(C.open));
-    var plat=/sprinklr/i.test(clean(g(C.plat)))?'Sprinklr':'GCCP';
+    var pv=clean(g(C.plat)),plat=/sprinklr/i.test(pv)||(SPK&&!pv)?'Sprinklr':'GCCP';
+    var kb=plat==='Sprinklr'?id+'|'+clean(g(C.cre))+'|'+clean(g(C.msg)).slice(0,80):id;occ[kb]=(occ[kb]||0)+1;var rk=plat==='Sprinklr'?kb+'#'+occ[kb]:id;
     var errs=[C.e1,C.e2,C.e3,C.e4].map(function(c){return c>=0?clean(r[c]):''}).filter(Boolean);
-    out.push({id:id,plat:plat,day:dkey(d),esp:clean(g(C.esp))||clean(g(C.own))||'Sin especialista',ev:ev,rev:ev!=='',ae:toks.indexOf('MED')>=0||toks.indexOf('AE')>=0||toks.indexOf('EA')>=0,pqc:toks.indexOf('PQC')>=0,errs:errs,ch:(function(v){return norm(v)==='phone call'?'Teléfono':v})(clean(g(C.ch))),brand:clean(g(C.brand)),subj:clean(g(C.subj)),prod:clean(g(C.prod)),ok:clean(g(C.ok)),desc:clean(g(C.desc)),by:clean(g(C.by))});
+    out.push({id:id,k:rk,plat:plat,day:dkey(d),esp:clean(g(C.esp))||clean(g(C.own))||'Sin especialista',ev:ev,rev:ev!=='',ae:toks.indexOf('MED')>=0||toks.indexOf('AE')>=0||toks.indexOf('EA')>=0,pqc:toks.indexOf('PQC')>=0,errs:errs,ch:(function(v){return norm(v)==='phone call'?'Teléfono':v})(clean(g(C.ch))),brand:clean(g(C.brand)),subj:clean(g(C.subj)),prod:clean(g(C.prod)),ok:clean(g(C.ok)),desc:clean(g(C.desc)),by:clean(g(C.by))});
   }
   var canon={};out.forEach(function(c){var k=norm(c.esp);if(!canon[k])canon[k]=c.esp;c.esp=canon[k]});
   return out;
@@ -1505,23 +1509,24 @@ function readFile(file){
       if(typeof XLSX==='undefined')throw new Error('No cargó la librería de Excel. Revisa tu conexión y recarga la página.');
       var wb=XLSX.read(e.target.result,{type:'array',cellDates:true}),names=wb.SheetNames.slice().sort(function(a,b){return(norm(b)==='base')-(norm(a)==='base')}),out=null;
       for(var i=0;i<names.length&&!out;i++){out=parseBase(XLSX.utils.sheet_to_json(wb.Sheets[names[i]],{header:1,raw:true,defval:''}))}
-      if(!out)throw new Error(file.name+': no encontré las columnas “Número do caso” y “AVALIAÇÃO DO CASO”. Sube la hoja Base de acuracidad.');
+      if(!out)throw new Error(file.name+': no encontré las columnas “Número do caso” (GCCP) o “Case Number” (Sprinklr) junto con “AVALIAÇÃO DO CASO”. Sube la hoja Base de acuracidad.');
       res({name:file.name,rows:out});
     }catch(err){rej(err)}};
     r.onerror=function(){rej(new Error('No pude leer '+file.name))};
     r.readAsArrayBuffer(file);
   });
 }
+function platTxt(l){var g=l.filter(function(c){return c.plat==='GCCP'}).length,sp=l.length-g,o=[];if(g)o.push('GCCP '+g+' casos');if(sp)o.push('Sprinklr '+sp+' mensajes');return o.join(' + ')||'0 filas'}
 function addRows(list){
-  var seen={};ROWS.forEach(function(c){seen[c.plat+'|'+c.id]=1});
-  list.forEach(function(c){var k=c.plat+'|'+c.id;if(seen[k]){DUP++;return}seen[k]=1;ROWS.push(c)});
+  var seen={};ROWS.forEach(function(c){seen[c.plat+'|'+(c.k||c.id)]=1});
+  list.forEach(function(c){var k=c.plat+'|'+(c.k||c.id);if(seen[k]){DUP++;return}seen[k]=1;ROWS.push(c)});
 }
 $('acFile').addEventListener('change',function(e){
   var files=Array.prototype.slice.call(e.target.files||[]);if(!files.length)return;
   $('acMsg').textContent='Leyendo…';
   Promise.all(files.map(readFile)).then(function(rs){
-    rs.forEach(function(r){addRows(r.rows);FILES.push(r.name+' ('+r.rows.length+' casos)')});
-    refreshEsp();render();$('acMsg').textContent='Cargado: '+FILES.join(' · ');
+    rs.forEach(function(r){addRows(r.rows);FILES.push(r.name+' ('+platTxt(r.rows)+')')});
+    refreshEsp();render();$('acMsg').textContent='Cargado: '+FILES.join(' · ')+' — Unificado: '+platTxt(ROWS)+(DUP?' · '+DUP+' fila'+(DUP===1?'':'s')+' repetida'+(DUP===1?'':'s')+' omitida'+(DUP===1?'':'s'):'')+'.';
   }).catch(function(err){$('acMsg').textContent='⚠ '+err.message});
   e.target.value='';
 });
