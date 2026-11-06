@@ -289,12 +289,12 @@ tr.mu td{color:var(--mu)}
 <header>
   <div>
     <h1>Acuracidad — calidad y exactitud de datos</h1>
-    <p>Carga el Excel de acuracidad (hoja “Base”, la auditoría de casos) y calcula los 4 indicadores contra su meta oficial: detección de AE/PQC en redes sociales, acuracidad GCCP, calidad de datos en AE y calidad de datos en PQC.</p>
+    <p>Carga el Excel de acuracidad (hoja “Base”, la auditoría de casos) y calcula los 4 indicadores contra su meta oficial: detección de AE/PQC en redes sociales, acuracidad GCCP, calidad de datos en AE y calidad de datos en PQC. También puedes sumar el reporte “Survey Case Details” de Sprinklr para unir la encuesta de satisfacción (CSAT / NPS) con cada caso auditado.</p>
   </div>
 </header>
 <div class="card">
   <h2>Cargar base de acuracidad</h2>
-  <p class="sub">Puedes subir uno o varios archivos con el mismo formato (por ejemplo, uno de GCCP y otro de Sprinklr). La plataforma se toma de la columna PLATAFORMA; si no existe, se asume GCCP. El archivo se procesa solo en tu navegador.</p>
+  <p class="sub">Puedes subir uno o varios archivos con el mismo formato (por ejemplo, uno de GCCP y otro de Sprinklr). La plataforma se toma de la columna PLATAFORMA; si no existe, se asume GCCP. Además puedes subir el reporte <b>Survey Case Details</b> de Sprinklr (Case Id, marca, red social, CSAT, NPS): se detecta solo por sus columnas y se cruza con la auditoría por número de caso, en cualquier orden de carga. Todo se procesa solo en tu navegador.</p>
   <div class="drop" style="margin:0"><input id="acFile" type="file" multiple accept=".xlsx,.xls,.csv" aria-label="Cargar Excel de acuracidad"><p class="mu" id="acMsg" style="margin:8px 0 0" role="status">Esperando archivo.</p></div>
   <div class="row row5" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr));margin-top:14px">
     <div><label for="mSoc">Meta Social Media (%)</label><input id="mSoc" type="number" step="0.1" value="98"></div>
@@ -308,6 +308,7 @@ tr.mu td{color:var(--mu)}
 <div id="acOut" hidden>
   <div class="stats" id="acKpi" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))"></div>
   <p class="mu" id="acCov"></p>
+  <div id="acSv"></div>
   <div id="acCh"></div>
   <div id="acRc"></div>
   <div class="card"><h2>Por especialista</h2><p class="sub">Los porcentajes se calculan sobre los casos revisados de cada persona. En rojo, lo que está por debajo de la meta.</p><div class="tw"><table id="acTe"></table></div></div>
@@ -332,6 +333,7 @@ tr.mu td{color:var(--mu)}
       <li><b>Calidad AE</b> (meta ≥ 95%) = casos revisados de GCCP con asunto MED (AE) sin error no crítico ÷ revisados con asunto MED.</li>
       <li><b>Calidad PQC</b> (meta ≥ 97%) = casos revisados de GCCP con asunto PQC sin error no crítico ÷ revisados con asunto PQC. Un caso con MED y PQC cuenta en ambos.</li>
       <li>El tipo de asunto se lee de “Subject Summary”. El margen indica cuántos errores más se toleran antes de bajar de la meta.</li>
+      <li><b>Encuesta vinculada</b>: el <i>Case Id</i> de Survey Case Details se une con el <i>Número do caso</i> de la auditoría. CSAT: 6–7 = promotor, 1–5 = detractor (% de promotores). NPS: 9–10 promotor, 7–8 neutro, 0–6 detractor (promotores − detractores). Los casos con encuesta pero sin auditoría no entran en los 4 indicadores; se listan aparte.</li>
     </ul>
   </div>
 </div>
@@ -1130,7 +1132,7 @@ function pDate(v){
 }
 function dkey(d){return d?d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()):'Sin fecha'}
 function dlab(k){var p=k.split('-');return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:k}
-var ROWS=[],FILES=[],DUP=0;
+var ROWS=[],FILES=[],DUP=0,SURV={},SVN=0,SVMISS=[];
 function findHeader(aoa){
   for(var i=0;i<Math.min(aoa.length,30);i++){
     var h=aoa[i].map(norm);
@@ -1159,6 +1161,76 @@ function parseBase(aoa){
   }
   var canon={};out.forEach(function(c){var k=norm(c.esp);if(!canon[k])canon[k]=c.esp;c.esp=canon[k]});
   return out;
+}
+/* ===== Base de encuestas Sprinklr (Survey Case Details) ===== */
+function findSvHeader(aoa){
+  for(var i=0;i<Math.min(aoa.length,30);i++){
+    var h=aoa[i].map(norm);
+    if(h.indexOf('case id')>=0&&h.some(function(x){return x.indexOf('case creation time')===0}))return{row:i,h:h};
+  }
+  return null;
+}
+function fcol(h,re){for(var i=0;i<h.length;i++)if(re.test(h[i]))return i;return-1}
+function svScore(v){var m=/^\s*(\d+)/.exec(s(v));if(!m)return null;var n=+m[1];return n>=0&&n<=10?n:null}
+function parseSurvey(aoa){
+  var z=findSvHeader(aoa);if(!z)return null;
+  var h=z.h,C={id:h.indexOf('case id'),brand:fcol(h,/^brand \(case\)/),soc:fcol(h,/^social network/),prod:fcol(h,/^product code/),dt:fcol(h,/^case creation time/),cs:fcol(h,/please rate your experience/),why:fcol(h,/not that satisfied|where we can improve/),np:fcol(h,/how likely would you be|recommend our brand/),ct:fcol(h,/may we contact/),type:fcol(h,/^case type/),ag:fcol(h,/^last engaged user/)};
+  var map={},order=[];
+  for(var i=z.row+1;i<aoa.length;i++){
+    var r=aoa[i],id=clean(r[C.id]);if(!id)continue;
+    function g(c){return c>=0?r[c]:''}
+    var d=pDate(g(C.dt)),o=map[id];
+    if(!o){o=map[id]={id:id,brand:clean(g(C.brand)),soc:clean(g(C.soc)),prod:clean(g(C.prod)),day:dkey(d),agent:clean(g(C.ag)),type:clean(g(C.type)),csat:null,nps:null,why:'',contact:clean(g(C.ct))};order.push(id)}
+    if(o.csat==null)o.csat=svScore(g(C.cs));
+    if(o.nps==null)o.nps=svScore(g(C.np));
+    if(!o.why)o.why=clean(g(C.why));
+  }
+  return order.map(function(k){return map[k]});
+}
+function csC(v){return v==null?'':v>=6?'P':'D'}
+function npC(v){return v==null?'':v>=9?'P':v>=7?'N':'D'}
+function svCalc(l){
+  var r={n:l.length,cp:0,cd:0,np:0,nn:0,nd:0};
+  l.forEach(function(v){var a=csC(v.csat),b=npC(v.nps);if(a==='P')r.cp++;else if(a==='D')r.cd++;if(b==='P')r.np++;else if(b==='N')r.nn++;else if(b==='D')r.nd++});
+  var ct=r.cp+r.cd,nt=r.np+r.nn+r.nd;
+  r.csat=ct?Math.round(r.cp/ct*100):null;r.nps=nt?Math.round((r.np-r.nd)/nt*100):null;return r;
+}
+function svCols(list){var x=svCalc(list.filter(function(c){return c.sv}).map(function(c){return c.sv}));return[x.n||'–',x.csat==null?'–':x.csat+'%',x.nps==null?'–':x.nps]}
+function svTxt(c){return c.sv?'CSAT '+(c.sv.csat==null?'–':c.sv.csat)+' · NPS '+(c.sv.nps==null?'–':c.sv.nps):'<span class="mu">–</span>'}
+function addSurvey(list){list.forEach(function(v){SURV[v.id]=v});SVN=Object.keys(SURV).length}
+function link(){
+  var hit={};
+  ROWS.forEach(function(c){
+    var v=SURV[c.id];c.sv=v||null;
+    if(v){hit[c.id]=1;if(!c.brand&&v.brand)c.brand=v.brand;if(!c.ch&&v.soc)c.ch=v.soc}
+  });
+  SVMISS=Object.keys(SURV).filter(function(k){return!hit[k]}).map(function(k){return SURV[k]});
+}
+function pcs(v){return v==null?'–':v+'%'}
+function renderSv(L){
+  var el=$('acSv');if(!SVN){el.innerHTML='';return}
+  var filtered=!!$('acEsp').value,linked=L.filter(function(c){return c.sv}),nLinked=ROWS.filter(function(c){return c.sv}).length;
+  var pool=filtered?linked.map(function(c){return c.sv}):Object.keys(SURV).map(function(k){return SURV[k]}),T=svCalc(pool);
+  var h='<div class="card"><h2>Encuesta de satisfacción vinculada (Sprinklr)</h2>';
+  h+='<p class="sub">Encuestas cargadas: <b>'+SVN+'</b> · Vinculadas a un caso de la base de acuracidad: <b>'+nLinked+'</b> · Sin caso auditado: <b>'+SVMISS.length+'</b>. '+(filtered?'Con el filtro de especialista, solo cuentan las encuestas vinculadas a sus casos.':'')+'</p>';
+  h+='<p style="margin:0 0 10px">CSAT: <b>'+pcs(T.csat)+'</b> · NPS: <b>'+(T.nps==null?'–':T.nps)+'</b> <span class="mu">('+T.n+' encuesta'+(T.n===1?'':'s')+')</span></p>';
+  var ORD=[['OK','Correcto'],['F','Feedback'],['NC','No crítico'],['C','Crítico'],['X','Sin clasificar'],['','Sin revisar']];
+  var rows=ORD.map(function(o){var l=linked.filter(function(c){return c.ev===o[0]}).map(function(c){return c.sv});if(!l.length)return null;var r=svCalc(l);return[o[1],l.length,pcs(r.csat),r.nps==null?'–':r.nps,r.nd]}).filter(Boolean);
+  h+='<h3 class="st2">Satisfacción según el resultado de la auditoría</h3><div class="tw"><table>'+tbl(['Evaluación del caso','Encuestas','CSAT','NPS','Detractores (NPS)'],rows)+'</table></div>';
+  h+='<p class="mu sm">Con pocas encuestas por grupo, los porcentajes son referencia, no tendencia.</p>';
+  var wm={};pool.forEach(function(v){if(v.why)wm[v.why]=(wm[v.why]||0)+1});
+  var wr=Object.keys(wm).sort(function(a,b){return wm[b]-wm[a]}).map(function(k){return[esc(k),wm[k]]});
+  if(wr.length)h+='<h3 class="st2">Motivos de insatisfacción declarados</h3><div class="tw"><table>'+tbl(['Motivo','Encuestas'],wr)+'</table></div>';
+  if(SVMISS.length&&!filtered){
+    var mr=SVMISS.slice().sort(function(a,b){return a.day<b.day?-1:a.day>b.day?1:0}).slice(0,100).map(function(v){return[esc(v.id),dlab(v.day),esc(v.brand||'–'),esc(v.soc||'–'),esc(v.type||'–'),esc(v.agent||'–'),v.csat==null?'–':v.csat,v.nps==null?'–':v.nps]});
+    h+='<h3 class="st2">Encuestas sin caso en la base de acuracidad ('+SVMISS.length+')</h3><p class="mu sm" style="margin:0 0 6px">No están en la auditoría cargada: no fueron revisados o la base es de otro periodo. No entran en los 4 indicadores.'+(SVMISS.length>100?' Se muestran 100.':'')+'</p><div class="tw"><table>'+tbl(['Caso','Día','Marca','Red social','Tipo de caso','Último agente','CSAT','NPS'],mr)+'</table></div>';
+  }
+  h+='</div>';el.innerHTML=h;
+}
+function svSheet(){
+  var map={};ROWS.forEach(function(c){map[c.id]=c});
+  var lab={C:'Crítico',NC:'No crítico',F:'Feedback',X:'Sin clasificar',OK:'Correcto','':'Sin revisar'};
+  return[['Caso','Día','Marca','Red social','Producto','Tipo de caso','Último agente','CSAT','NPS','Motivo insatisfacción','¿Contactar?','Auditado','Evaluación auditoría','Especialista auditoría']].concat(Object.keys(SURV).map(function(k){var v=SURV[k],c=map[k];return[v.id,dlab(v.day),v.brand,v.soc,v.prod,v.type,v.agent,v.csat==null?'':v.csat,v.nps==null?'':v.nps,v.why,v.contact,c?'Sí':'No',c?(lab[c.ev]||c.ev):'',c?c.esp:'']}));
 }
 function pct(a,b){return b?a/b*100:null}
 function ind(list){
@@ -1475,22 +1547,23 @@ function renderCharts(){
   el.innerHTML=h;
 }
 function render(){
-  $('acOut').hidden=!ROWS.length;if(!ROWS.length)return;
-  var M=metas(),L=current(),I=ind(L);
+  link();$('acOut').hidden=!ROWS.length;if(!ROWS.length)return;
+  var M=metas(),L=current(),I=ind(L),hasSv=SVN>0;
   $('acKpi').innerHTML=kpi('Detección AE/PQC — Social Media',I.soc,M.soc,'mensajes sin error crítico')+kpi('Acuracidad de captura GCCP',I.gccp,M.gccp,'casos sin error crítico')+kpi('Calidad de datos AE (no críticos)',I.ae,M.ae,'registros AE sin error no crítico')+kpi('Calidad de datos PQC (no críticos)',I.pqc,M.pqc,'registros PQC sin error no crítico');
   $('acCov').innerHTML='Casos en base: <b>'+I.tot+'</b> · Revisados: <b>'+I.rev+'</b> ('+(I.tot?(I.rev/I.tot*100).toFixed(1):'0')+'%) · Sin revisar: <b>'+(I.tot-I.rev)+'</b> · Error crítico: <b>'+I.c+'</b> · No crítico: <b>'+I.nc+'</b> · Feedback: <b>'+I.f+'</b>'+(I.x?' · <b class="sc-b">Sin clasificar ('+I.x+'): revisa AVALIAÇÃO DO CASO</b>':'')+(DUP?' · Duplicados ignorados: '+DUP:'')+(I.soc.n===0?'<br>No hay casos de Sprinklr en lo cargado: el indicador de Social Media queda sin datos hasta que subas una base con PLATAFORMA = Sprinklr.':'');
-  var sp=groupBy(L,function(c){return c.esp}).sort(function(a,b){return a[0].localeCompare(b[0])}).map(function(g){var i=ind(g[1]);return[esc(g[0]),i.rev+' / '+i.tot,i.c,i.nc,i.f,cell(i.gccp,M.gccp),cell(i.ae,M.ae),cell(i.pqc,M.pqc),cell(i.soc,M.soc)]});
-  var t=I;sp.push(['<b>Total</b>',t.rev+' / '+t.tot,t.c,t.nc,t.f,cell(t.gccp,M.gccp),cell(t.ae,M.ae),cell(t.pqc,M.pqc),cell(t.soc,M.soc)]);
-  $('acTe').innerHTML=tbl(['Especialista','Revisados / total','Crít.','No crít.','Feedback','GCCP','Calidad AE','Calidad PQC','Social'],sp);
+  var sp=groupBy(L,function(c){return c.esp}).sort(function(a,b){return a[0].localeCompare(b[0])}).map(function(g){var i=ind(g[1]);return[esc(g[0]),i.rev+' / '+i.tot,i.c,i.nc,i.f,cell(i.gccp,M.gccp),cell(i.ae,M.ae),cell(i.pqc,M.pqc),cell(i.soc,M.soc)].concat(hasSv?svCols(g[1]):[])});
+  var t=I;sp.push(['<b>Total</b>',t.rev+' / '+t.tot,t.c,t.nc,t.f,cell(t.gccp,M.gccp),cell(t.ae,M.ae),cell(t.pqc,M.pqc),cell(t.soc,M.soc)].concat(hasSv?svCols(L):[]));
+  $('acTe').innerHTML=tbl(['Especialista','Revisados / total','Crít.','No crít.','Feedback','GCCP','Calidad AE','Calidad PQC','Social'].concat(hasSv?['Encuestas','CSAT','NPS']:[]),sp);
   var dy=groupBy(L,function(c){return c.day}).sort(function(a,b){return a[0]<b[0]?-1:1}).map(function(g){var i=ind(g[1]);return[dlab(g[0]),i.rev+' / '+i.tot,i.c,i.nc,i.f,cell(i.gccp,M.gccp),cell(i.ae,M.ae),cell(i.pqc,M.pqc)]});
   $('acTd').innerHTML=tbl(['Día','Revisados / total','Crít.','No crít.','Feedback','GCCP','Calidad AE','Calidad PQC'],dy);
   var er={};L.filter(function(c){return c.rev}).forEach(function(c){c.errs.forEach(function(e){var o=er[e]||(er[e]={t:0,C:0,NC:0,F:0,OK:0,X:0});o.t++;o[c.ev]++})});
   var ers=Object.keys(er).sort(function(a,b){return er[b].t-er[a].t}).map(function(k){var o=er[k];return[esc(k),o.t,o.C,o.NC,o.F]});
   $('acTr').innerHTML=tbl(['Error registrado','Total','En crítico','En no crítico','En feedback'],ers);
   var inc=$('acFb').checked,lab={C:'Crítico',NC:'No crítico',F:'Feedback',X:'Sin clasificar'};
-  var cs=L.filter(function(c){return c.ev==='C'||c.ev==='NC'||c.ev==='X'||(inc&&c.ev==='F')}).sort(function(a,b){return a.esp.localeCompare(b.esp)||(a.day<b.day?-1:1)}).map(function(c){return[esc(c.id),dlab(c.day),esc(c.esp),esc(c.ch||'–'),'<b class="'+(c.ev==='C'?'sc-b':c.ev==='NC'?'sc-m':'')+'">'+lab[c.ev]+'</b>',esc(c.errs.join(' · ')),esc(registrado(c)),esc(c.desc),'<textarea data-case="'+esc(c.id)+'" rows="3" aria-label="Correcto esperado del caso '+esc(c.id)+'">'+esc(expected(c))+'</textarea>']});
-  $('acTc').innerHTML=tbl(['Caso','Día','Especialista','Canal','Evaluación','Error(es)','Lo que se registró','Observación del auditor','Correcto esperado (editable)'],cs);
-  renderCharts();renderRc(L);renderActa();
+  var cs=L.filter(function(c){return c.ev==='C'||c.ev==='NC'||c.ev==='X'||(inc&&c.ev==='F')}).sort(function(a,b){return a.esp.localeCompare(b.esp)||(a.day<b.day?-1:1)}).map(function(c){return[esc(c.id),dlab(c.day),esc(c.esp),esc(c.ch||'–'),'<b class="'+(c.ev==='C'?'sc-b':c.ev==='NC'?'sc-m':'')+'">'+lab[c.ev]+'</b>',esc(c.errs.join(' · ')),esc(registrado(c)),esc(c.desc),svTxt(c),'<textarea data-case="'+esc(c.id)+'" rows="3" aria-label="Correcto esperado del caso '+esc(c.id)+'">'+esc(expected(c))+'</textarea>']});
+  var hdC=['Caso','Día','Especialista','Canal','Evaluación','Error(es)','Lo que se registró','Observación del auditor','Encuesta (CSAT · NPS)','Correcto esperado (editable)'];if(!hasSv){hdC.splice(8,1);cs.forEach(function(r){r.splice(8,1)})}
+  $('acTc').innerHTML=tbl(hdC,cs);
+  renderSv(L);renderCharts();renderRc(L);renderActa();
 }
 function refreshEsp(){
   var cur=$('acEsp').value,names=[];ROWS.forEach(function(c){if(names.indexOf(c.esp)<0)names.push(c.esp)});names.sort(function(a,b){return a.localeCompare(b)});
@@ -1503,10 +1576,10 @@ function readFile(file){
     var r=new FileReader();
     r.onload=function(e){try{
       if(typeof XLSX==='undefined')throw new Error('No cargó la librería de Excel. Revisa tu conexión y recarga la página.');
-      var wb=XLSX.read(e.target.result,{type:'array',cellDates:true}),names=wb.SheetNames.slice().sort(function(a,b){return(norm(b)==='base')-(norm(a)==='base')}),out=null;
-      for(var i=0;i<names.length&&!out;i++){out=parseBase(XLSX.utils.sheet_to_json(wb.Sheets[names[i]],{header:1,raw:true,defval:''}))}
-      if(!out)throw new Error(file.name+': no encontré las columnas “Número do caso” y “AVALIAÇÃO DO CASO”. Sube la hoja Base de acuracidad.');
-      res({name:file.name,rows:out});
+      var wb=XLSX.read(e.target.result,{type:'array',cellDates:true}),names=wb.SheetNames.slice().sort(function(a,b){return(norm(b)==='base')-(norm(a)==='base')}),out=null,kind='audit';
+      for(var i=0;i<names.length&&!out;i++){var aoa=XLSX.utils.sheet_to_json(wb.Sheets[names[i]],{header:1,raw:true,defval:''});out=parseBase(aoa);if(!out){var sv=parseSurvey(aoa);if(sv){out=sv;kind='survey'}}}
+      if(!out)throw new Error(file.name+': no reconocí el formato. Sube la hoja Base de acuracidad (“Número do caso” y “AVALIAÇÃO DO CASO”) o el reporte Survey Case Details de Sprinklr (“Case Id”).');
+      res({name:file.name,rows:out,kind:kind});
     }catch(err){rej(err)}};
     r.onerror=function(){rej(new Error('No pude leer '+file.name))};
     r.readAsArrayBuffer(file);
@@ -1520,14 +1593,14 @@ $('acFile').addEventListener('change',function(e){
   var files=Array.prototype.slice.call(e.target.files||[]);if(!files.length)return;
   $('acMsg').textContent='Leyendo…';
   Promise.all(files.map(readFile)).then(function(rs){
-    rs.forEach(function(r){addRows(r.rows);FILES.push(r.name+' ('+r.rows.length+' casos)')});
-    refreshEsp();render();$('acMsg').textContent='Cargado: '+FILES.join(' · ');
+    rs.forEach(function(r){if(r.kind==='survey'){addSurvey(r.rows);FILES.push(r.name+' ('+r.rows.length+' encuestas)')}else{addRows(r.rows);FILES.push(r.name+' ('+r.rows.length+' casos)')}});
+    refreshEsp();render();$('acMsg').textContent='Cargado: '+FILES.join(' · ')+(!ROWS.length&&SVN?'. Falta la base de acuracidad para cruzar las encuestas.':'');
   }).catch(function(err){$('acMsg').textContent='⚠ '+err.message});
   e.target.value='';
 });
 ['mSoc','mGccp','mAe','mPqc'].forEach(function(i){$(i).addEventListener('input',render)});
 $('acEsp').addEventListener('change',render);$('acFb').addEventListener('change',render);
-$('acRst').addEventListener('click',function(){ROWS=[];FILES=[];DUP=0;refreshEsp();$('acOut').hidden=true;$('acMsg').textContent='Esperando archivo.'});
+$('acRst').addEventListener('click',function(){ROWS=[];FILES=[];DUP=0;SURV={};SVN=0;SVMISS=[];$('acSv').innerHTML='';refreshEsp();$('acOut').hidden=true;$('acMsg').textContent='Esperando archivo.'});
 $('acXls').addEventListener('click',function(){
   if(!ROWS.length){alert('Carga primero la base de acuracidad.');return}
   if(typeof XLSX==='undefined'){alert('No cargó la librería de Excel. Revisa tu conexión y recarga.');return}
@@ -1540,6 +1613,7 @@ $('acXls').addEventListener('click',function(){
    ['Calidad de datos AE (no críticos)',M.ae,v(I.ae),I.ae.n-I.ae.e,I.ae.n,I.ae.e,st(I.ae,M.ae)],
    ['Calidad de datos PQC (no críticos)',M.pqc,v(I.pqc),I.pqc.n-I.pqc.e,I.pqc.n,I.pqc.e,st(I.pqc,M.pqc)],[],
    ['Casos en base',I.tot],['Revisados',I.rev],['Error crítico',I.c],['Error no crítico',I.nc],['Feedback',I.f]];
+  if(SVN){var tv=svCalc(L.filter(function(c){return c.sv}).map(function(c){return c.sv}));res.push([],['Encuestas cargadas',SVN],['Encuestas vinculadas a casos del filtro',tv.n],['CSAT vinculadas (%)',tv.csat==null?'':tv.csat],['NPS vinculadas',tv.nps==null?'':tv.nps]);}
   function rowsEsp(g){var i=ind(g);return[i.rev,i.tot,i.c,i.nc,i.f,v(i.gccp),v(i.ae),v(i.pqc),v(i.soc)]}
   var hE=['Revisados','Total','Crít.','No crít.','Feedback','GCCP %','Calidad AE %','Calidad PQC %','Social %'];
   var esp=[['Especialista'].concat(hE)].concat(groupBy(L,function(c){return c.esp}).sort(function(a,b){return a[0].localeCompare(b[0])}).map(function(g){return[g[0]].concat(rowsEsp(g[1]))})).concat([['Total'].concat(rowsEsp(L))]);
@@ -1547,9 +1621,9 @@ $('acXls').addEventListener('click',function(){
   var er={};L.filter(function(c){return c.rev}).forEach(function(c){c.errs.forEach(function(e){var o=er[e]||(er[e]={t:0,C:0,NC:0,F:0});o.t++;if(o[c.ev]!=null)o[c.ev]++})});
   var err=[['Error registrado','Total','En crítico','En no crítico','En feedback']].concat(Object.keys(er).sort(function(a,b){return er[b].t-er[a].t}).map(function(k){return[k,er[k].t,er[k].C,er[k].NC,er[k].F]}));
   var lab={C:'Crítico',NC:'No crítico',F:'Feedback',X:'Sin clasificar',OK:'Correcto','':'Sin revisar'};
-  var det=[['Caso','Día','Especialista','Plataforma','Evaluación','AE','PQC','Error(es)','Asunto correcto','Descripción']].concat(L.filter(function(c){return c.ev&&c.ev!=='OK'}).map(function(c){return[c.id,dlab(c.day),c.esp,c.plat,lab[c.ev],c.ae?'Sí':'',c.pqc?'Sí':'',c.errs.join(' · '),c.ok,c.desc]}));
+  var det=[['Caso','Día','Especialista','Plataforma','Evaluación','AE','PQC','Error(es)','Asunto correcto','Descripción','Marca','Red social (encuesta)','Tipo de caso','CSAT','NPS']].concat(L.filter(function(c){return c.ev&&c.ev!=='OK'}).map(function(c){return[c.id,dlab(c.day),c.esp,c.plat,lab[c.ev],c.ae?'Sí':'',c.pqc?'Sí':'',c.errs.join(' · '),c.ok,c.desc,c.brand,c.sv?c.sv.soc:'',c.sv?c.sv.type:'',c.sv&&c.sv.csat!=null?c.sv.csat:'',c.sv&&c.sv.nps!=null?c.sv.nps:'']}));
   var wb=XLSX.utils.book_new();
-  [['Resumen',res],['Por especialista',esp],['Por día',dia],['Errores',err]].concat(rcSheets(L)).concat([['Casos con observación',det]]).forEach(function(x){XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(x[1]),x[0])});
+  [['Resumen',res],['Por especialista',esp],['Por día',dia],['Errores',err]].concat(rcSheets(L)).concat([['Casos con observación',det]]).concat(SVN?[['Encuestas',svSheet()]]:[]).forEach(function(x){XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(x[1]),x[0])});
   XLSX.writeFile(wb,'Acuracidad-'+new Date().toISOString().slice(0,10)+'.xlsx');
 });
 $('acTc').addEventListener('input',function(e){var id=e.target.getAttribute&&e.target.getAttribute('data-case');if(!id)return;CORR[id]=e.target.value;saveCorr();renderActa()});
@@ -1567,7 +1641,7 @@ $('acActaAll').addEventListener('click',function(){
   var html=names.map(function(n,i){return'<div'+(i?' style="page-break-before:always"':'')+'>'+actaHtml(actaData(n,$('acActaFb').checked))+'</div>'}).join('');
   dlFile('Actas-Acuracidad-'+stamp()+'.doc',html);actaMsg('Descargadas '+names.length+' actas (solo especialistas con errores), una por página.');
 });
-window.__ac={parseBase:parseBase,ind:ind,load:function(r){ROWS=[];addRows(r);refreshEsp();render()},rc:rcData};
+window.__ac={parseBase:parseBase,parseSurvey:parseSurvey,loadSurvey:function(r){addSurvey(r);render()},ind:ind,load:function(r){ROWS=[];addRows(r);refreshEsp();render()},rc:rcData};
 })();
 </script>
 </body>
