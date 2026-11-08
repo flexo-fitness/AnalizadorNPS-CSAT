@@ -118,6 +118,14 @@ tr.mu td{color:var(--mu)}
 .lg .sw.a{background:var(--ca)}.lg .sw.t{background:var(--ct)}.lg .sw.m{background:var(--ink);width:3px;height:14px;border-radius:1px}
 .mu.sm{font-size:.8rem;margin:2px 0 0}
 #acTc textarea{min-width:230px;width:100%;font:inherit;font-size:.85rem}
+/* NPS/CSAT: gráficos por agente */
+.xchg{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));margin-top:8px}
+.xbox{background:var(--sf);border:1px solid var(--ln);border-radius:12px;padding:12px;min-width:0}
+.xbox h4{margin:0 0 2px;font:700 1rem 'Bricolage Grotesque',Figtree,system-ui,sans-serif}
+.xbox p{margin:0 0 8px}
+.cht text.on{fill:#fff}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .cht text.on{fill:#0c1a1f}}
+:root[data-theme="dark"] .cht text.on{fill:#0c1a1f}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
@@ -190,7 +198,20 @@ tr.mu td{color:var(--mu)}
   <p class="mu" id="xMsg" role="status" style="margin:10px 0 0"></p>
   <p class="mu" style="margin:6px 0 0">Los archivos se procesan en tu navegador. No se mezclan con el Excel de análisis de casos. <b>Puedes calcular con una sola base; si cargas GCCP y Sprinklr, se consolidan automáticamente.</b> El NPS/CSAT oficial nunca cambia por la clasificación de atribución.</p>
   <div id="xOut" hidden>
+    <div class="row" id="xFlt" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));margin-bottom:6px">
+      <div><label for="xAg">Filtrar por agente / especialista</label><select id="xAg"><option value="">Todos los agentes</option></select></div>
+      <div><label for="xSrcF">Fuente</label><select id="xSrcF"><option value="">GCCP + Sprinklr</option><option value="GCCP">Solo GCCP</option><option value="Sprinklr">Solo Sprinklr</option></select></div>
+    </div>
+    <p class="mu" id="xFltNote" role="status" style="margin:0 0 12px"></p>
     <div class="stats st2" id="xSt"></div>
+    <h3 class="st2">Estadísticas</h3>
+    <div class="stats" id="xStat"></div>
+    <h3 class="st2">Gráficos de comportamiento</h3>
+    <p class="mu">Con un agente seleccionado, cada gráfico lo compara contra el resto del equipo. Sin filtro, muestra el total y el ranking de agentes.</p>
+    <div class="xchg" id="xCh"></div>
+    <h3 class="st2">Detalle por segmento</h3>
+    <div class="row" style="grid-template-columns:minmax(200px,320px);margin-bottom:8px"><div><label for="xDimSel">Agrupar por</label><select id="xDimSel"><option value="brand">Marca</option><option value="country">País</option><option value="tipo">Tipo de caso</option><option value="sub">Asunto</option></select></div></div>
+    <div class="tw"><table id="xDim"></table></div>
     <h3 class="st2">Resultados por fuente</h3>
     <div class="tw"><table id="xSrc"></table></div>
     <h3 class="st2">Consolidado por hora — GCCP + Sprinklr</h3>
@@ -831,9 +852,9 @@ function neededPromoters(list,metric){
   return String(Math.max(0,Math.ceil((0.50*r.nt-(r.np-r.nd))/(1-0.50)-1e-10)));
 }
 function hourRows(list){var out=[];for(var h=0;h<24;h++){var l=list.filter(function(c){return c.hora===h}),r=calc(l);out.push({h:h,l:l,r:r})}var nh=list.filter(function(c){return c.hora==null||isNaN(c.hora)});if(nh.length)out.push({h:null,l:nh,r:calc(nh)});return out}
-function sourceTable(){
-  var g=calc(allCases('GCCP')),s2=calc(allCases('Sprinklr')),t=calc(allCurrent());
-  $x('xSrc').innerHTML='<tr><th>Fuente</th><th>Casos</th><th>NPS</th><th>CSAT</th><th>Promotores</th><th>Neutros</th><th>Detractores</th></tr>'+[['GCCP',allCases('GCCP').length,g.nps,g.csat,g.np,g.nn,g.nd],['Sprinklr',allCases('Sprinklr').length,s2.nps,s2.csat,s2.np,s2.nn,s2.nd],[hasBothSources()?'Consolidado':'Resultado disponible',allCurrent().length,t.nps,t.csat,t.np,t.nn,t.nd]].map(function(r){return'<tr><td><b>'+r[0]+'</b></td><td>'+r[1]+'</td><td>'+pc(r[2])+'</td><td>'+pc(r[3])+'</td><td>'+r[4]+'</td><td>'+r[5]+'</td><td>'+r[6]+'</td></tr>'}).join('');
+function sourceTable(list){
+  var gl=list.filter(function(c){return c.source==='GCCP'}),sl=list.filter(function(c){return c.source==='Sprinklr'}),g=calc(gl),s2=calc(sl),t=calc(list);
+  $x('xSrc').innerHTML='<tr><th>Fuente</th><th>Casos</th><th>NPS</th><th>CSAT</th><th>Promotores</th><th>Neutros</th><th>Detractores</th></tr>'+[['GCCP',gl.length,g.nps,g.csat,g.np,g.nn,g.nd],['Sprinklr',sl.length,s2.nps,s2.csat,s2.np,s2.nn,s2.nd],[gl.length&&sl.length?'Consolidado':'Resultado disponible',list.length,t.nps,t.csat,t.np,t.nn,t.nd]].map(function(r){return'<tr><td><b>'+r[0]+'</b></td><td>'+r[1]+'</td><td>'+pc(r[2])+'</td><td>'+pc(r[3])+'</td><td>'+r[4]+'</td><td>'+r[5]+'</td><td>'+r[6]+'</td></tr>'}).join('');
   return t;
 }
 function hasAnySource(){
@@ -859,17 +880,185 @@ function specRows(list){
 function missingReasons(list){
   return list.filter(function(c){return(cCls(c.csat)==='D'||nCls(c.nps)==='D')&&c.attr==='si'&&!s(c.why).trim()});
 }
+/* ===== Filtro por agente, estadísticas y gráficos de comportamiento ===== */
+var FLT={ag:'',src:'',dim:'brand'},AGN={},META_N=50,META_C=70,MINH=3,MINRANK=5;
+function agName(c){return s(c.ag).replace(/\s+/g,' ').trim()||'Sin especialista identificado'}
+function fillAgents(all){
+  var m={},ks=[];all.forEach(function(c){var k=specKey(c);if(!m[k]){m[k]=agName(c);ks.push(k)}});
+  ks.sort(function(a,b){return m[a].localeCompare(m[b])});
+  if(FLT.ag&&!m[FLT.ag])FLT.ag='';
+  AGN=m;
+  $x('xAg').innerHTML='<option value="">Todos los agentes ('+ks.length+')</option>'+ks.map(function(k){return'<option value="'+esc(k)+'"'+(k===FLT.ag?' selected':'')+'>'+esc(m[k])+'</option>'}).join('');
+  $x('xAg').value=FLT.ag;
+}
+function inSrc(c){return !FLT.src||c.source===FLT.src}
+function filt(all){return all.filter(function(c){return inSrc(c)&&(!FLT.ag||specKey(c)===FLT.ag)})}
+function teamOf(all){return FLT.ag?all.filter(function(c){return inSrc(c)&&specKey(c)!==FLT.ag}):[]}
+function nums(list,f){var a=[];list.forEach(function(c){var v=c[f];if(v!=null&&isFinite(v))a.push(+v)});return a}
+function mean(a){return a.length?a.reduce(function(x,y){return x+y},0)/a.length:null}
+function median(a){if(!a.length)return null;var b=a.slice().sort(function(x,y){return x-y}),m=b.length>>1;return b.length%2?b[m]:(b[m-1]+b[m])/2}
+function sdv(a){if(a.length<2)return null;var m=mean(a);return Math.sqrt(a.reduce(function(x,y){return x+(y-m)*(y-m)},0)/(a.length-1))}
+function d1(v){return v==null?'–':(Math.round(v*10)/10).toFixed(1).replace('.',',')}
+function sgn(v){return v==null?'–':(v>0?'+':'')+v}
+function pcOf(a,b){return b?a/b*100:null}
+function svgW(W,H,label){return'<svg class="cht" viewBox="0 0 '+W+' '+H+'" width="100%" role="img" aria-label="'+esc(label)+'" style="display:block;height:auto">'}
+function T(x,y,t,cls,anc){return'<text x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'"'+(anc?' text-anchor="'+anc+'"':'')+(cls?' class="'+cls+'"':'')+'>'+t+'</text>'}
+function stepFor(mx){return[1,2,5,10,20,25,50,100].filter(function(k){return mx/k<=5})[0]||100}
+function trunc(t,n){t=s(t);return t.length>n?t.slice(0,n-1)+'…':t}
+function barChart(items,label,o){
+  var W=460,H=220,l=38,r=10,t=16,b=30,n=items.length,mx=0;
+  items.forEach(function(i){mx=Math.max(mx,i.v||0,i.t||0)});
+  if(!mx)return'<p class="mu">Sin datos para graficar.</p>';
+  var st=stepFor(mx),ym=Math.ceil(mx/st)*st,Y=function(v){return t+(1-v/ym)*(H-t-b)},bw=(W-l-r)/n,sv=svgW(W,H,label);
+  for(var v=0;v<=ym+1e-9;v+=st)sv+='<line x1="'+l+'" x2="'+(W-r)+'" y1="'+Y(v).toFixed(1)+'" y2="'+Y(v).toFixed(1)+'" class="gl"/>'+T(l-6,Y(v)+4,v+(o&&o.pct?'%':''),'mu sm','end');
+  items.forEach(function(i,k){
+    var x=l+k*bw+bw*0.18,w=bw*0.64,yv=Y(i.v||0),h=(H-b)-yv;
+    sv+='<rect x="'+x.toFixed(1)+'" y="'+yv.toFixed(1)+'" width="'+w.toFixed(1)+'" height="'+Math.max(0,h).toFixed(1)+'" rx="3" style="fill:'+i.c+'"><title>'+esc(i.tip)+'</title></rect>';
+    if(n<=12&&i.v)sv+=T(x+w/2,yv-4,i.txt,'sm','middle');
+    if(i.t!=null)sv+='<line x1="'+(x-2).toFixed(1)+'" x2="'+(x+w+2).toFixed(1)+'" y1="'+Y(i.t).toFixed(1)+'" y2="'+Y(i.t).toFixed(1)+'" style="stroke:var(--ink);stroke-width:2.5"><title>'+esc(i.ttip||'Resto del equipo')+'</title></line>';
+    if(n<=14||k%2===0)sv+=T(l+k*bw+bw/2,H-12,esc(i.lab),'mu sm','middle');
+  });
+  return sv+'</svg>';
+}
+function lineChart(cats,A,B,label,o){
+  var W=460,H=230,l=44,r=14,t=18,b=34,n=cats.length;
+  if(!A.some(function(p){return p&&p.v!=null})&&!(B&&B.some(function(p){return p&&p.v!=null})))return'<p class="mu">Sin datos para graficar.</p>';
+  var X=function(i){return l+(n>1?i*(W-l-r)/(n-1):(W-l-r)/2)},Y=function(v){return t+(1-(v-o.min)/(o.max-o.min))*(H-t-b)},sv=svgW(W,H,label);
+  for(var v=o.min;v<=o.max+1e-9;v+=o.step)sv+='<line x1="'+l+'" x2="'+(W-r)+'" y1="'+Y(v).toFixed(1)+'" y2="'+Y(v).toFixed(1)+'" class="gl"/>'+T(l-6,Y(v)+4,v+(o.pct?'%':''),'mu sm','end');
+  if(o.meta!=null)sv+='<line x1="'+l+'" x2="'+(W-r)+'" y1="'+Y(o.meta).toFixed(1)+'" y2="'+Y(o.meta).toFixed(1)+'" style="stroke:var(--pas);stroke-width:1.6;stroke-dasharray:5 4"/>'+T(W-r,Y(o.meta)-4,'Meta '+o.meta+(o.pct?'%':''),'sm','end');
+  var ev=n>14?2:1;cats.forEach(function(c,i){if(i%ev===0)sv+=T(X(i),H-14,esc(c),'mu sm','middle')});
+  function path(arr,col,dash){var d='',pen=false;arr.forEach(function(p,i){if(p&&p.v!=null){d+=(pen?'L':'M')+X(i).toFixed(1)+' '+Y(p.v).toFixed(1)+' ';pen=true}else pen=false});return d?'<path d="'+d+'" style="fill:none;stroke:'+col+';stroke-width:2.2;stroke-linejoin:round;stroke-linecap:round'+(dash?';stroke-dasharray:6 4':'')+'"/>':''}
+  function dots(arr,col,nm){var q='';arr.forEach(function(p,i){if(p&&p.v!=null)q+='<circle cx="'+X(i).toFixed(1)+'" cy="'+Y(p.v).toFixed(1)+'" r="3.6" style="fill:'+col+';stroke:var(--sf);stroke-width:1.5"><title>'+esc(nm+' · '+cats[i]+': '+p.v+(o.pct?'%':'')+' ('+p.n+' resp.)')+'</title></circle>'});return q}
+  if(B)sv+=path(B,'var(--mu)',true)+dots(B,'var(--mu)','Resto del equipo');
+  sv+=path(A,'var(--ac)',false)+dots(A,'var(--ac)',o.nm||'Selección');
+  return sv+'</svg>';
+}
+function stackChart(rows,label){
+  var W=460,l=118,r=12,rh=38,H=rows.length*rh+10,sv=svgW(W,H,label);
+  rows.forEach(function(rw,k){
+    var y=8+k*rh,x=l,tot=rw.segs.reduce(function(a,g){return a+g[0]},0);
+    sv+=T(l-8,y+14,esc(trunc(rw.name,18)),'b sm','end')+T(l-8,y+28,'n='+rw.n,'mu sm','end');
+    if(!tot){sv+=T(l,y+17,'Sin respuestas','mu sm');return}
+    rw.segs.forEach(function(g){
+      var w=(W-l-r)*g[0]/tot;if(g[0]<=0)return;
+      sv+='<rect x="'+x.toFixed(1)+'" y="'+y+'" width="'+w.toFixed(1)+'" height="26" style="fill:'+g[1]+'"><title>'+esc(g[2]+': '+g[0]+' ('+Math.round(g[0]/tot*100)+'%)')+'</title></rect>';
+      if(w>=30)sv+=T(x+w/2,y+18,Math.round(g[0]/tot*100)+'%','sm on','middle');
+      x+=w;
+    });
+  });
+  return sv+'</svg>';
+}
+function rankChart(rows,label){
+  var W=460,l=190,r=34,rh=22,t=8,H=rows.length*rh+t+30,Wp=W-l-r,X=function(v){return l+(v+100)/200*Wp},sv=svgW(W,H,label);
+  [-100,-50,0,50,100].forEach(function(v){sv+='<line x1="'+X(v).toFixed(1)+'" x2="'+X(v).toFixed(1)+'" y1="'+t+'" y2="'+(H-24)+'" class="gl"/>'+T(X(v),H-8,v,'mu sm','middle')});
+  sv+='<line x1="'+X(META_N).toFixed(1)+'" x2="'+X(META_N).toFixed(1)+'" y1="'+t+'" y2="'+(H-24)+'" style="stroke:var(--pas);stroke-width:1.6;stroke-dasharray:5 4"/>';
+  rows.forEach(function(rw,k){
+    var y=t+k*rh,v=rw.nps,col=v>=META_N?'var(--pro)':v>=0?'var(--pas)':'var(--det)',x0=X(0),x1=X(v);
+    sv+=T(l-8,y+15,esc(trunc(rw.name,26))+' ('+rw.n+')','sm','end')+'<rect x="'+Math.min(x0,x1).toFixed(1)+'" y="'+(y+3)+'" width="'+Math.max(1,Math.abs(x1-x0)).toFixed(1)+'" height="15" rx="2" style="fill:'+col+'"><title>'+esc(rw.name+': NPS '+sgn(v)+' · CSAT '+(rw.csat==null?'–':rw.csat+'%')+' · '+rw.n+' resp. NPS')+'</title></rect>'+T(v>=0?x1+4:x1-4,y+15,sgn(v),'sm',v>=0?'':'end');
+  });
+  return sv+'</svg>';
+}
+function xbox(title,sub,body,leg){return'<div class="xbox"><h4>'+title+'</h4><p class="mu sm">'+sub+'</p>'+body+(leg||'')+'</div>'}
+function legend(items){return'<div class="leg" style="margin-top:6px">'+items.map(function(i){return'<span><span class="dot" style="background:'+i[0]+'"></span>'+i[1]+'</span>'}).join('')+'</div>'}
+function kk(n,v,sm,cls,tag){return'<div class="kpi"><small>'+n+'</small><b'+(cls?' class="'+cls+'"':'')+'>'+v+'</b>'+(tag||'')+'<span class="sm">'+sm+'</span></div>'}
+function tagOk(ok,t){return'<span class="tag" style="'+(ok?'':'background:var(--det);color:#fff')+'">'+t+'</span>'}
+function groupBy(list,fn){var m={},o=[];list.forEach(function(c){var k=fn(c);if(!m[k]){m[k]=[];o.push(k)}m[k].push(c)});return o.map(function(k){return{k:k,l:m[k]}})}
+function hh(h){return('0'+h).slice(-2)+'h'}
+function renderInsights(ALL,list){
+  var team=teamOf(ALL),hasT=team.length>0,r=calc(list),rt=hasT?calc(team):null,who=FLT.ag?AGN[FLT.ag]:'Todos los agentes';
+  var srcTxt=FLT.src||'GCCP + Sprinklr';
+  $x('xFltNote').textContent='Mostrando: '+who+' · '+srcTxt+' · '+list.length+' respuesta'+(list.length===1?'':'s')+(hasT?'. Se compara contra el resto del equipo ('+team.length+' respuestas).':'.')+' Las exportaciones incluyen todos los datos cargados, sin filtro.';
+  /* ---- Estadísticas ---- */
+  var cs=nums(list,'csat'),ns=nums(list,'nps'),vsN=(r.nps!=null&&rt&&rt.nps!=null)?r.nps-rt.nps:null,vsC=(r.csat!=null&&rt&&rt.csat!=null)?r.csat-rt.csat:null;
+  var hrs=hourRows(list).filter(function(x){return x.h!=null&&x.r.nt>=MINH}),days=groupBy(list,function(c){return c.day}).map(function(g){return{k:g.k,r:calc(g.l)}}).filter(function(x){return x.r.nt>=MINH});
+  function ext(a,get){var b=null,w=null;a.forEach(function(x){if(!b||x.r.nps>b.r.nps)b=x;if(!w||x.r.nps<w.r.nps)w=x});return a.length>=2&&b!==w?{b:b,w:w}:null}
+  var eh=ext(hrs),ed=ext(days),st='';
+  st+=kk('Respuestas',list.length,'NPS: '+r.nt+' · CSAT: '+r.ct+' · GCCP '+list.filter(function(c){return c.source==='GCCP'}).length+' · Sprinklr '+list.filter(function(c){return c.source==='Sprinklr'}).length);
+  st+=kk('NPS',r.nps==null?'–':sgn(r.nps),(rt?'Resto del equipo: '+sgn(rt.nps)+(vsN==null?'':' ('+sgn(vsN)+' pts)'):'Meta ≥ '+META_N),r.nps==null?'':(r.nps>=META_N?'sc-a':'sc-b'),r.nps==null?'':tagOk(r.nps>=META_N,(r.nps>=META_N?'Cumple':'No cumple')+' · meta '+META_N));
+  st+=kk('CSAT',pc(r.csat),(rt?'Resto del equipo: '+pc(rt.csat)+(vsC==null?'':' ('+sgn(vsC)+' pts)'):'Meta ≥ '+META_C+'%'),r.csat==null?'':(r.csat>=META_C?'sc-a':'sc-b'),r.csat==null?'':tagOk(r.csat>=META_C,(r.csat>=META_C?'Cumple':'No cumple')+' · meta '+META_C+'%'));
+  st+=kk('Promedio CSAT (1–7)',d1(mean(cs)),'Mediana '+d1(median(cs))+' · desv. '+d1(sdv(cs)));
+  st+=kk('Promedio NPS (1–10)',d1(mean(ns)),'Mediana '+d1(median(ns))+' · desv. '+d1(sdv(ns)));
+  st+=kk('Mezcla NPS',r.nt?Math.round(r.np/r.nt*100)+'% prom.':'–',r.nt?Math.round(r.nn/r.nt*100)+'% neutros · '+Math.round(r.nd/r.nt*100)+'% detractores':'Sin respuestas NPS');
+  st+=kk('Promotores que faltan para la meta','<span style="font-size:1.05rem;line-height:1.5;display:block">CSAT ≥ '+META_C+'%: '+neededPromoters(list,'CSAT')+'<br>NPS ≥ '+META_N+': '+neededPromoters(list,'NPS')+'</span>','Respuestas promotoras adicionales necesarias, suponiendo que cada nueva respuesta sea promotora.');
+  if(FLT.ag){
+    var rk=groupBy(ALL.filter(inSrc),function(c){return specKey(c)}).map(function(g){var q=calc(g.l);return{k:g.k,nps:q.nps,csat:q.csat,nt:q.nt}}).filter(function(x){return x.nt>=MINRANK&&x.nps!=null}).sort(function(a,b){return b.nps-a.nps||(b.csat||0)-(a.csat||0)}),pos=-1;
+    rk.forEach(function(x,i){if(x.k===FLT.ag)pos=i});
+    st+=kk('Posición por NPS',pos>=0?(pos+1)+'° de '+rk.length:'–',pos>=0?'Entre agentes con '+MINRANK+' o más respuestas NPS':'Menos de '+MINRANK+' respuestas NPS: muestra pequeña');
+  }
+  st+=kk('Mejor / peor hora (NPS)',eh?lab(eh.b.h)+' / '+lab(eh.w.h):'–',eh?sgn(eh.b.r.nps)+' ('+eh.b.r.nt+' resp.) / '+sgn(eh.w.r.nps)+' ('+eh.w.r.nt+' resp.)':'Se necesitan al menos '+MINH+' respuestas NPS en 2 horas');
+  st+=kk('Mejor / peor día (NPS)',ed?fday(ed.b.k).slice(0,5)+' / '+fday(ed.w.k).slice(0,5):'–',ed?sgn(ed.b.r.nps)+' ('+ed.b.r.nt+' resp.) / '+sgn(ed.w.r.nps)+' ('+ed.w.r.nt+' resp.)':'Se necesitan al menos '+MINH+' respuestas NPS en 2 días');
+  $x('xStat').innerHTML=st;
+  /* ---- Gráficos ---- */
+  var nm=FLT.ag?'Agente':'Selección',cmp=hasT,A_=function(){return'var(--ac)'};
+  var leg=cmp?legend([['var(--ac)','Agente'],['var(--mu)','Resto del equipo']]):'';
+  var barLeg=cmp?'<p class="mu sm" style="margin:4px 0 0">Barras: agente · marca oscura: resto del equipo.</p>':'';
+  var ch='';
+  var cp=calc(list),ctp=hasT?calc(team):null;
+  function segsN(q){return[[q.np,'var(--pro)','Promotores'],[q.nn,'var(--pas)','Neutros'],[q.nd,'var(--det)','Detractores']]}
+  function segsC(q){return[[q.cp,'var(--pro)','Satisfechos (6–7)'],[q.cd,'var(--det)','Insatisfechos (1–5)']]}
+  var rowsN=[{name:FLT.ag?who:'Selección',n:cp.nt,segs:segsN(cp)}],rowsC=[{name:FLT.ag?who:'Selección',n:cp.ct,segs:segsC(cp)}];
+  if(hasT){rowsN.push({name:'Resto del equipo',n:ctp.nt,segs:segsN(ctp)});rowsC.push({name:'Resto del equipo',n:ctp.ct,segs:segsC(ctp)})}
+  ch+=xbox('Distribución NPS','Proporción de promotores, neutros y detractores.',stackChart(rowsN,'Distribución NPS'),legend([['var(--pro)','Promotores (9–10)'],['var(--pas)','Neutros (7–8)'],['var(--det)','Detractores (≤6)']]));
+  ch+=xbox('Distribución CSAT','Satisfechos (6–7) frente a insatisfechos (1–5).',stackChart(rowsC,'Distribución CSAT'),legend([['var(--pro)','Satisfechos'],['var(--det)','Insatisfechos']]));
+  function histo(field,lo,hi,colf,lbl){
+    var a=nums(list,field),b=nums(team,field),items=[];
+    for(var v=lo;v<=hi;v++){
+      var ca=a.filter(function(x){return Math.round(x)===v}).length,cb=b.filter(function(x){return Math.round(x)===v}).length,pa=pcOf(ca,a.length),pb=hasT?pcOf(cb,b.length):null;
+      if(v===0&&!ca&&!cb)continue;
+      items.push({lab:String(v),v:pa==null?0:Math.round(pa*10)/10,t:pb==null?null:Math.round(pb*10)/10,c:colf(v),txt:Math.round(pa||0)+'%',tip:lbl+' '+v+': '+ca+' resp. ('+d1(pa||0)+'%)',ttip:'Resto del equipo: '+d1(pb||0)+'% ('+cb+' resp.)'});
+    }
+    return items;
+  }
+  ch+=xbox('Calificaciones CSAT (1–7)','% de respuestas por nota.',barChart(histo('csat',1,7,function(v){return v>=6?'var(--pro)':'var(--det)'},'CSAT'),'Histograma de calificaciones CSAT',{pct:true}),barLeg);
+  ch+=xbox('Calificaciones NPS (0–10)','% de respuestas por nota.',barChart(histo('nps',0,10,function(v){return v>=9?'var(--pro)':v>=7?'var(--pas)':'var(--det)'},'NPS'),'Histograma de calificaciones NPS',{pct:true}),barLeg);
+  /* por hora */
+  var hs=[];list.concat(team).forEach(function(c){if(c.hora!=null&&!isNaN(c.hora))hs.push(c.hora)});
+  if(hs.length){
+    var h0=Math.min.apply(null,hs),h1=Math.max.apply(null,hs),cats=[],hl=[],ht=[];
+    for(var h=h0;h<=h1;h++){cats.push(hh(h));hl.push(list.filter(function(c){return c.hora===h}));ht.push(team.filter(function(c){return c.hora===h}))}
+    var vol=cats.map(function(c,i){var cntA=hl[i].length,cntT=ht[i].length,pa=cmp?pcOf(cntA,list.length):cntA,pb=cmp?pcOf(cntT,team.length):null;return{lab:c,v:Math.round((pa||0)*10)/10,t:pb==null?null:Math.round(pb*10)/10,c:'var(--ac)',txt:String(Math.round(pa||0))+(cmp?'%':''),tip:c+': '+cntA+' resp.',ttip:'Resto del equipo: '+cntT+' resp.'}});
+    ch+=xbox('Comportamiento por hora — volumen',cmp?'% de las respuestas del agente por hora (marca: resto del equipo).':'Cantidad de respuestas por hora.',barChart(vol,'Respuestas por hora',{pct:cmp}));
+    var sc=function(arr,f){return arr.map(function(l){var q=calc(l);return f==='n'?{v:q.nps,n:q.nt}:{v:q.csat,n:q.ct}})};
+    ch+=xbox('CSAT por hora',(cmp?'Línea punteada: resto del equipo. ':'')+'Con pocas respuestas por hora, tómalo solo como referencia.',lineChart(cats,sc(hl,'c'),cmp?sc(ht,'c'):null,'CSAT por hora',{min:0,max:100,step:25,meta:META_C,pct:true,nm:nm}),leg);
+    ch+=xbox('NPS por hora',cmp?'Línea punteada: resto del equipo.':'Evolución del NPS durante el día.',lineChart(cats,sc(hl,'n'),cmp?sc(ht,'n'):null,'NPS por hora',{min:-100,max:100,step:50,meta:META_N,nm:nm}),leg);
+  }
+  /* por día */
+  var dk=[];list.concat(team).forEach(function(c){if(c.day&&dk.indexOf(c.day)<0)dk.push(c.day)});dk.sort();
+  if(dk.length>=2){
+    var dc=dk.map(function(d){return fday(d).slice(0,5)}),dl=dk.map(function(d){return list.filter(function(c){return c.day===d})}),dt=dk.map(function(d){return team.filter(function(c){return c.day===d})});
+    var vol2=dc.map(function(c,i){var cntA=dl[i].length,cntT=dt[i].length,pa=cmp?pcOf(cntA,list.length):cntA,pb=cmp?pcOf(cntT,team.length):null;return{lab:c,v:Math.round((pa||0)*10)/10,t:pb==null?null:Math.round(pb*10)/10,c:'var(--ac)',txt:String(Math.round(pa||0))+(cmp?'%':''),tip:c+': '+cntA+' resp.',ttip:'Resto del equipo: '+cntT+' resp.'}});
+    var sc2=function(arr,f){return arr.map(function(l){var q=calc(l);return f==='n'?{v:q.nps,n:q.nt}:{v:q.csat,n:q.ct}})};
+    ch+=xbox('Tendencia diaria — volumen',cmp?'% de las respuestas del agente por día.':'Respuestas por día.',barChart(vol2,'Respuestas por día',{pct:cmp}));
+    ch+=xbox('CSAT por día','Evolución diaria del CSAT.',lineChart(dc,sc2(dl,'c'),cmp?sc2(dt,'c'):null,'CSAT por día',{min:0,max:100,step:25,meta:META_C,pct:true,nm:nm}),leg);
+    ch+=xbox('NPS por día','Evolución diaria del NPS.',lineChart(dc,sc2(dl,'n'),cmp?sc2(dt,'n'):null,'NPS por día',{min:-100,max:100,step:50,meta:META_N,nm:nm}),leg);
+  }
+  /* ranking de agentes (solo vista general) */
+  if(!FLT.ag){
+    var rr=groupBy(ALL.filter(inSrc),function(c){return specKey(c)}).map(function(g){var q=calc(g.l);return{name:AGN[g.k]||agName(g.l[0]),nps:q.nps,csat:q.csat,n:q.nt}}).filter(function(x){return x.n>0&&x.nps!=null}).sort(function(a,b){return b.nps-a.nps||b.n-a.n}).slice(0,20);
+    if(rr.length>1)ch+=xbox('Ranking de agentes por NPS','Hasta 20 agentes con respuestas NPS; entre paréntesis, la cantidad de respuestas. Línea punteada: meta '+META_N+'. Con pocas respuestas es solo referencia.',rankChart(rr,'Ranking de agentes por NPS'),legend([['var(--pro)','Cumple la meta'],['var(--pas)','Entre 0 y la meta'],['var(--det)','Negativo']]));
+  }
+  $x('xCh').innerHTML=ch;
+  /* ---- Detalle por segmento ---- */
+  var dims={brand:'Marca',country:'País',tipo:'Tipo de caso',sub:'Asunto'},dg=groupBy(list,function(c){return s(c[FLT.dim]).trim()||'Sin dato'}).sort(function(a,b){return b.l.length-a.l.length}).slice(0,15);
+  var dh='<tr><th>'+dims[FLT.dim]+'</th><th>Respuestas</th><th>NPS</th><th>CSAT</th><th>Prom.</th><th>Neutros</th><th>Detr. NPS</th><th>Insatisf. CSAT</th></tr>';
+  dg.forEach(function(g){var q=calc(g.l);dh+='<tr><td><b>'+esc(g.k)+'</b></td><td>'+g.l.length+'</td><td>'+pc(q.nps)+'</td><td>'+pc(q.csat)+'</td><td>'+q.np+'</td><td>'+q.nn+'</td><td>'+q.nd+'</td><td>'+q.cd+'</td></tr>'});
+  $x('xDim').innerHTML=dh;
+}
 function render(){
-  var gList=allCases('GCCP'),sList=allCases('Sprinklr'),list=gList.concat(sList);
+  var gAll=allCases('GCCP'),sAll=allCases('Sprinklr'),ALL=gAll.concat(sAll);fillAgents(ALL);
+  var list=filt(ALL),gList=list.filter(function(c){return c.source==='GCCP'}),sList=list.filter(function(c){return c.source==='Sprinklr'}),both=gList.length>0&&sList.length>0;
   if(!hasAnySource()){
     $x('xOut').hidden=true;$x('xDay').textContent='–';
     $x('xMsg').textContent='Carga GCCP, Sprinklr o ambas bases. Con una sola fuente se calcula esa base; con ambas se consolida la información.';
     return;
   }
-  if(!list.length){$x('xOut').hidden=true;$x('xDay').textContent='–';return}
-  $x('xOut').hidden=false;$x('xDay').textContent='GCCP: '+dateLabel('GCCP')+' · Sprinklr: '+dateLabel('Sprinklr');var t=sourceTable();
+  if(!ALL.length){$x('xOut').hidden=true;$x('xDay').textContent='–';return}
+  $x('xOut').hidden=false;$x('xDay').textContent='GCCP: '+dateLabel('GCCP')+' · Sprinklr: '+dateLabel('Sprinklr');
+  if(!list.length){['xSt','xStat','xCh','xSrc','xHr','xSp','xDim','xDt'].forEach(function(i){$x(i).innerHTML=''});$x('xRes').textContent='';$x('xFltNote').textContent='No hay respuestas para esa combinación de agente y fuente. Cambia el filtro.';return}
+  var t=sourceTable(list);
   function k(n,v,sm){return'<div class="kpi"><small>'+n+'</small><b>'+v+'</b><span class="sm">'+sm+'</span></div>'}
-  $x('xSt').innerHTML=k(hasBothSources()?'NPS consolidado':'NPS de la fuente cargada',t.nps==null?'–':(t.nps>0?'+':'')+t.nps,t.np+' promotores · '+t.nn+' neutros · '+t.nd+' detractores')+k(hasBothSources()?'CSAT consolidado':'CSAT de la fuente cargada',pc(t.csat),t.cp+' satisfechos · '+t.cd+' insatisfechos')+k('Casos únicos',list.length,'GCCP '+allCases('GCCP').length+' · Sprinklr '+allCases('Sprinklr').length);
+  $x('xSt').innerHTML=k(FLT.ag?'NPS · '+esc(AGN[FLT.ag]):both?'NPS consolidado':'NPS de la selección',t.nps==null?'–':(t.nps>0?'+':'')+t.nps,t.np+' promotores · '+t.nn+' neutros · '+t.nd+' detractores')+k(FLT.ag?'CSAT · '+esc(AGN[FLT.ag]):both?'CSAT consolidado':'CSAT de la selección',pc(t.csat),t.cp+' satisfechos · '+t.cd+' insatisfechos')+k('Casos únicos',list.length,'GCCP '+gList.length+' · Sprinklr '+sList.length);
+  renderInsights(ALL,list);
   var hr='<tr><th>Hora</th><th>GCCP</th><th>Sprinklr</th><th>Total</th><th>NPS</th><th>CSAT</th><th>Prom.</th><th>Neut.</th><th>Detr.</th></tr>';
   hourRows(list).forEach(function(x){var g=x.l.filter(function(c){return c.source==='GCCP'}).length,sp=x.l.filter(function(c){return c.source==='Sprinklr'}).length;hr+='<tr><td><b>'+lab(x.h)+'</b></td><td>'+g+'</td><td>'+sp+'</td><td>'+x.l.length+'</td><td>'+pc(x.r.nps)+'</td><td>'+pc(x.r.csat)+'</td><td>'+x.r.np+'</td><td>'+x.r.nn+'</td><td>'+x.r.nd+'</td></tr>'});
   $x('xHr').innerHTML=hr;
@@ -1057,6 +1246,9 @@ function resetBases(){
   render();refreshDay();updateState('Bases cargadas y sus cálculos eliminados. La calculadora manual y el análisis de casos se conservaron.');
 }
 $x('xReset').addEventListener('click',resetBases);
+$x('xAg').addEventListener('change',function(){FLT.ag=this.value;render()});
+$x('xSrcF').addEventListener('change',function(){FLT.src=this.value;render()});
+$x('xDimSel').addEventListener('change',function(){FLT.dim=this.value;render()});
 $x('xClr').addEventListener('click',resetBases);
 function findCase(src,id){
   var cases=L.sources&&L.sources[src]&&L.sources[src].cases;
