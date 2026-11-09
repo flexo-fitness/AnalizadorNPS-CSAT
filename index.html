@@ -610,11 +610,12 @@ function buildMx(){
 
 function analyze(aoa){
   var hi=-1,i,j;
-  for(i=0;i<aoa.length&&hi<0;i++){if(aoa[i].some(function(c){return s(c).trim()==='Número del caso'}))hi=i}
+  function nz(x){return s(x).replace(/\u00a0/g,' ').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim().toLowerCase()}
+  for(i=0;i<aoa.length&&hi<0;i++){if(aoa[i].some(function(c){var k=nz(c);return k==='numero del caso'||k==='case number'}))hi=i}
   if(hi<0)throw new Error('No encontré la columna “Número del caso”. Verifica que sea el reporte “Cases con correos”.');
-  var h=aoa[hi].map(function(c){return s(c).trim()});
-  function ix(n,k){var c=0;for(var j=0;j<h.length;j++)if(h[j]===n){if(c===(k||0))return j;c++}return -1}
-  var C={caso:ix('Número del caso'),est:ix('Estado',0),mod:ix('Última modificación por: Nombre completo'),de:ix('Nombre De'),cu:ix('Cuerpo del texto'),or:ix('Dirección de origen'),fe:ix('Fecha del mensaje'),pais:ix('Country Marketed'),marca:ix('Insert Brand'),sku:ix('Product Description (SKU)'),sub:ix('Subjects')};
+  var h=aoa[hi].map(nz);
+  function ix(n,k){var names=(Array.isArray(n)?n:[n]).map(nz);for(var q=0;q<names.length;q++){var c=0;for(var j=0;j<h.length;j++)if(h[j]===names[q]){if(c===(k||0))return j;c++}}return -1}
+  var C={caso:ix(['Número del caso','Case Number']),est:ix(['Estado','Status']),mod:ix(['Última modificación por: Nombre completo','Last Modified By: Full Name']),de:ix(['Nombre De','Nombre de','From Name']),cu:ix(['Cuerpo del texto','Text Body']),or:ix(['Dirección de origen','Dirección De','From Address']),fe:ix(['Fecha del mensaje','Message Date']),pais:ix(['País de comercialización','Country Marketed']),marca:ix(['Insert Brand','Marca']),sku:ix(['Descripción del Producto','Product Description (SKU)','Product Description']),sub:ix(['Asuntos','Subjects'])};
   if(C.cu<0||C.fe<0||C.or<0)throw new Error('Faltan columnas del reporte (Cuerpo del texto, Dirección de origen o Fecha del mensaje).');
   var rd=new Date();
   for(i=0;i<hi;i++){var mm=/(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})/.exec(s(aoa[i].join(' ')));if(mm){rd=new Date(+mm[1],+mm[2]-1,+mm[3],+mm[4],+mm[5]);break}}
@@ -624,7 +625,7 @@ function analyze(aoa){
     if(!/^\d+$/.test(id))continue;
     if(!cases[id]){cases[id]={id:id,marca:s(r[C.marca]),sku:s(r[C.sku]),pais:s(r[C.pais]),sub:s(r[C.sub]),est:s(r[C.est]),msgs:[]};order.push(id)}
     var or=s(r[C.or]).toLowerCase(),de=s(r[C.de]);
-    var tipo=/noreply|no-reply/.test(or)?'auto':(/@kenvue\.com/.test(or)||/kenvue/i.test(de))?'agente':'cliente';
+    var tipo=(/noreply|no-reply|mailer-daemon|mailerdaemon|postmaster/.test(or)||/^(mail delivery system|no-reply)$/i.test(de.trim())||/j&j encryption|secure e-?mail from johnson/i.test(s(r[C.cu]).slice(0,200)+' '+de))?'auto':(/@kenvue\.com/.test(or)||/kenvue/i.test(de))?'agente':'cliente';
     var raw=s(r[C.cu]);
     cases[id].msgs.push({tipo:tipo,ag:s(r[C.mod]),de:de,d:pdate(r[C.fe]),n:i,trunc:raw.length>=990,txt:tipo==='agente'?cleanAg(raw):cleanCli(raw)});
   }
