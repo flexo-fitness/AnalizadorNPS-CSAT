@@ -380,19 +380,24 @@ tr.mu td{color:var(--mu)}
 <div id="vLeads">
   <header><div><h1>LEADS — oportunidades comerciales</h1><p>Carga la base de oportunidades y analiza resultados por agente, marca, sistema, país y tipo. El archivo se procesa localmente en el navegador.</p></div></header>
   <div id="ldResults" hidden>
-    <div class="stats" id="ldStats"></div>
-    <div class="card"><h2>Filtros</h2><div class="row" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">
-      <div><label for="ldAgent">Agente</label><select id="ldAgent"><option value="">Todos</option></select></div>
-      <div><label for="ldBrand">Marca</label><select id="ldBrand"><option value="">Todas</option></select></div>
-      <div><label for="ldSystem">Sistema / plataforma</label><select id="ldSystem"><option value="">Todos</option></select></div>
+    <div class="card"><h2>Indicadores generales de aprovechamiento</h2><p class="sub">El aprovechamiento mide qué proporción de las oportunidades comerciales terminó con un link enviado. Todos los indicadores responden a los filtros seleccionados.</p><div class="stats" id="ldStats"></div><div id="ldInsights" class="ld-insights"></div></div>
+    <div class="card"><h2>Filtros gerenciales</h2><div class="row" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">
+      <div><label for="ldAgent">Agente / Case Owner</label><select id="ldAgent"><option value="">Todos</option></select></div>
       <div><label for="ldCountry">País</label><select id="ldCountry"><option value="">Todos</option></select></div>
+      <div><label for="ldBrand">Marca</label><select id="ldBrand"><option value="">Todas</option></select></div>
+      <div><label for="ldChannel">Canal</label><select id="ldChannel"><option value="">Todos</option></select></div>
+      <div><label for="ldSystem">Sistema / plataforma</label><select id="ldSystem"><option value="">Todos</option></select></div>
+      <div><label for="ldGroup">Grupo</label><select id="ldGroup"><option value="">Todos</option></select></div>
+      <div><label for="ldType">Tipo de caso</label><select id="ldType"><option value="">Todos</option></select></div>
     </div><div class="btns"><button type="button" id="ldExport">Exportar análisis a Excel</button><button type="button" id="ldClear">Limpiar base cargada</button></div></div>
-    <div class="card"><h2>Resumen por agente</h2><div class="tw"><table id="ldByAgent"></table></div></div>
-    <div class="card"><h2>Resumen por marca</h2><div class="tw"><table id="ldByBrand"></table></div></div>
-    <div class="card"><h2>Resumen por sistema</h2><div class="tw"><table id="ldBySystem"></table></div></div>
-    <div class="card"><h2>Resumen por país</h2><div class="tw"><table id="ldByCountry"></table></div></div>
-    <div class="card"><h2>Resumen por tipo</h2><div class="tw"><table id="ldByType"></table></div></div>
-    <div class="card"><h2>Detalle por caso</h2><div class="tw"><table id="ldDetail"></table></div></div>
+    <div class="card"><h2>Impacto por agente</h2><p class="sub">Volumen, oportunidades, links enviados, aprovechamiento y oportunidades pendientes.</p><div class="tw"><table id="ldByAgent"></table></div></div>
+    <div class="card"><h2>Impacto por país</h2><div class="tw"><table id="ldByCountry"></table></div></div>
+    <div class="card"><h2>Impacto por marca</h2><div class="tw"><table id="ldByBrand"></table></div></div>
+    <div class="card"><h2>Impacto por canal</h2><div class="tw"><table id="ldByChannel"></table></div></div>
+    <div class="card"><h2>Impacto por plataforma</h2><div class="tw"><table id="ldBySystem"></table></div></div>
+    <div class="card"><h2>Impacto por grupo</h2><div class="tw"><table id="ldByGroup"></table></div></div>
+    <div class="card"><h2>Impacto por tipo de caso</h2><div class="tw"><table id="ldByType"></table></div></div>
+    <div class="card"><h2>Detalle individual por caso</h2><p class="sub">Se muestran hasta 1.500 registros; la exportación incluye todos los registros filtrados.</p><div class="tw"><table id="ldDetail"></table></div></div>
   </div>
 </div>
 <div id="vGer" hidden>
@@ -419,6 +424,12 @@ tr.mu td{color:var(--mu)}
 #ldFile{display:block!important;visibility:visible!important;opacity:1!important;position:static!important;width:100%!important;height:auto!important;max-width:560px!important;min-height:48px!important;margin:10px 0 12px!important;padding:12px!important;border:2px solid var(--ac)!important;border-radius:10px!important;background:var(--bg)!important;color:var(--ink)!important;cursor:pointer!important}
 #vLeads[hidden]{display:none!important}
 #vLeads table,#vGer table{width:100%;border-collapse:collapse;font-size:13px}
+#vLeads .ld-insights{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:14px}
+#vLeads .ld-insight{padding:14px;border:1px solid var(--ln);border-radius:10px;background:var(--sf)}
+#vLeads .ld-insight b{display:block;margin-bottom:6px}
+#vLeads .ld-insight span{font-size:13px;line-height:1.5;color:var(--mu)}
+#vLeads .stats .kpi{min-width:130px}
+
 #vLeads th,#vLeads td,#vGer th,#vGer td{padding:9px;border-bottom:1px solid var(--ln);text-align:left;vertical-align:top}
 #vLeads input,#vGer input,#vGer textarea,#vGer select{max-width:100%}
 .gm-action{border:1px solid var(--ln);border-radius:12px;padding:12px;margin:10px 0;background:var(--sf)}
@@ -431,14 +442,46 @@ tr.mu td{color:var(--mu)}
  const cols=['Data','Caso','Sales Chances','Link Sent','Complaints','País','Sistema','Marca','Tipo','Subject','Canal','Group','Case Owner'];
  const norm=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
  const yes=x=>['1','1.0','si','sí','yes','true','y'].includes(String(x==null?'':x).trim().toLowerCase());
- function metric(rows){let opp=rows.filter(r=>yes(r['Sales Chances'])),sentOpp=opp.filter(r=>yes(r['Link Sent'])),links=rows.filter(r=>yes(r['Link Sent']));return {cases:rows.length,opp:opp.length,sentOpp:sentOpp.length,rate:opp.length?sentOpp.length/opp.length*100:0,links:links.length,complaints:rows.filter(r=>yes(r.Complaints)).length}}
+ function metric(rows){
+  let opp=rows.filter(r=>yes(r['Sales Chances'])),sentOpp=opp.filter(r=>yes(r['Link Sent'])),links=rows.filter(r=>yes(r['Link Sent'])),complaints=rows.filter(r=>yes(r.Complaints));
+  let pending=opp.length-sentOpp.length;
+  return {cases:rows.length,opp:opp.length,oppRate:rows.length?opp.length/rows.length*100:0,sentOpp:sentOpp.length,rate:opp.length?sentOpp.length/opp.length*100:0,pending,links:links.length,nonOppLinks:links.length-sentOpp.length,complaints:complaints.length,complaintRate:rows.length?complaints.length/rows.length*100:0};
+ }
  function table(id,rows,headers){$(id).innerHTML='<thead><tr>'+headers.map(x=>'<th>'+esc(x)+'</th>').join('')+'</tr></thead><tbody>'+rows.map(r=>'<tr>'+r.map(x=>'<td>'+x+'</td>').join('')+'</tr>').join('')+'</tbody>'}
- function group(rows,key){let m={};rows.forEach(r=>{let k=String(r[key]||'Sin dato');(m[k]||(m[k]=[])).push(r)});return Object.keys(m).sort((a,b)=>a.localeCompare(b)).map(k=>{let z=metric(m[k]);return [esc(k),z.cases,z.opp,z.sentOpp,z.rate.toFixed(1)+'%',z.links,z.complaints]})}
- function options(id,key,all){let v=$(id).value,vals=[...new Set(all.map(r=>String(r[key]||'')).filter(Boolean))].sort();$(id).innerHTML='<option value="">Todos</option>'+vals.map(x=>'<option>'+esc(x)+'</option>').join('');$(id).value=vals.includes(v)?v:''}
- function filtered(){return leads.filter(r=>(!$('ldAgent').value||String(r['Case Owner']||'')===$('ldAgent').value)&&(! $('ldBrand').value||String(r.Marca||'')===$('ldBrand').value)&&(! $('ldSystem').value||String(r.Sistema||'')===$('ldSystem').value)&&(! $('ldCountry').value||String(r.País||'')===$('ldCountry').value))}
- function render(){let rows=filtered(),m=metric(rows);$('ldStats').innerHTML=[['Total casos',m.cases],['Oportunidades',m.opp],['Oportunidades con link',m.sentOpp],['% leads enviados',m.rate.toFixed(1)+'%'],['Total links enviados',m.links],['Complaints',m.complaints]].map(x=>'<div class="kpi"><b>'+x[1]+'</b><span>'+x[0]+'</span></div>').join('');
-  let h=['Grupo','Casos','Oportunidades','Oportunidades con link','Conversión','Links enviados','Complaints'];
-  table('ldByAgent',group(rows,'Case Owner'),h);table('ldByBrand',group(rows,'Marca'),h);table('ldBySystem',group(rows,'Sistema'),h);table('ldByCountry',group(rows,'País'),h);table('ldByType',group(rows,'Tipo'),h);
+ function group(rows,key){
+  let m={};rows.forEach(r=>{let k=String(r[key]||'Sin dato').trim()||'Sin dato';(m[k]||(m[k]=[])).push(r)});
+  let total=metric(rows);
+  return Object.keys(m).sort((a,b)=>a.localeCompare(b)).map(k=>{
+   let z=metric(m[k]),oppShare=total.opp?z.opp/total.opp*100:0,caseShare=total.cases?z.cases/total.cases*100:0;
+   return [esc(k),z.cases,caseShare.toFixed(1)+'%',z.opp,oppShare.toFixed(1)+'%',z.sentOpp,z.rate.toFixed(1)+'%',z.pending,z.links,z.complaints,z.complaintRate.toFixed(1)+'%'];
+  });
+ }
+ const groupHeaders=['Segmento','Casos','% casos','Oportunidades','% oportunidades','Oportunidades con link','Aprovechamiento','Oportunidades pendientes','Links totales','Complaints','% complaints'];
+ function options(id,key,all){let v=$(id).value,vals=[...new Set(all.map(r=>String(r[key]||'').trim()).filter(Boolean))].sort();$(id).innerHTML='<option value="">Todos</option>'+vals.map(x=>'<option value="'+esc(x)+'">'+esc(x)+'</option>').join('');$(id).value=vals.includes(v)?v:''}
+ function filtered(){return leads.filter(r=>
+  (!$('ldAgent').value||String(r['Case Owner']||'')===$('ldAgent').value)&&
+  (!$('ldBrand').value||String(r.Marca||'')===$('ldBrand').value)&&
+  (!$('ldSystem').value||String(r.Sistema||'')===$('ldSystem').value)&&
+  (!$('ldCountry').value||String(r['País']||'')===$('ldCountry').value)&&
+  (!$('ldChannel').value||String(r.Canal||'')===$('ldChannel').value)&&
+  (!$('ldGroup').value||String(r.Group||'')===$('ldGroup').value)&&
+  (!$('ldType').value||String(r.Tipo||'')===$('ldType').value)
+ )}
+ function render(){
+  let rows=filtered(),m=metric(rows);
+  $('ldStats').innerHTML=[
+   ['Casos gestionados',m.cases],['Oportunidades detectadas',m.opp],['Tasa de oportunidad',m.oppRate.toFixed(1)+'%'],
+   ['Oportunidades con link',m.sentOpp],['Tasa de aprovechamiento',m.rate.toFixed(1)+'%'],['Oportunidades pendientes',m.pending],
+   ['Links enviados (total)',m.links],['Links fuera de oportunidad',m.nonOppLinks],['Complaints',m.complaints],['Tasa de complaints',m.complaintRate.toFixed(1)+'%']
+  ].map(x=>'<div class="kpi"><b>'+x[1]+'</b><span>'+x[0]+'</span></div>').join('');
+  $('ldInsights').innerHTML='<div class="ld-insight"><b>Lectura operativa</b><span>De '+m.opp+' oportunidades detectadas, '+m.sentOpp+' terminaron con link enviado ('+m.rate.toFixed(1)+'%). Quedan '+m.pending+' oportunidades pendientes de envío.</span></div><div class="ld-insight"><b>Volumen y calidad</b><span>'+m.cases+' casos gestionados · '+m.links+' links enviados en total · '+m.complaints+' complaints ('+m.complaintRate.toFixed(1)+'% de los casos).</span></div>';
+  table('ldByAgent',group(rows,'Case Owner'),groupHeaders);
+  table('ldByCountry',group(rows,'País'),groupHeaders);
+  table('ldByBrand',group(rows,'Marca'),groupHeaders);
+  table('ldByChannel',group(rows,'Canal'),groupHeaders);
+  table('ldBySystem',group(rows,'Sistema'),groupHeaders);
+  table('ldByGroup',group(rows,'Group'),groupHeaders);
+  table('ldByType',group(rows,'Tipo'),groupHeaders);
   table('ldDetail',rows.slice(0,1500).map(r=>cols.map(c=>esc(r[c]||''))),cols);
  }
  $('ldFile').addEventListener('change',async e=>{
@@ -482,15 +525,15 @@ tr.mu td{color:var(--mu)}
     let dataRows=matrix.slice(headerIndex+1).filter(row=>row.some(v=>String(v==null?'':v).trim()!==''));
     leads=dataRows.map(row=>{let o={};cols.forEach(c=>{let ci=headerMap[c];o[c]=ci===undefined?'':(row[ci]===undefined?'':row[ci])});return o});
     if(!leads.length)throw Error('Encontré los encabezados en la fila '+(headerIndex+1)+', pero no hay registros debajo.');
-    ['ldAgent','ldBrand','ldSystem','ldCountry'].forEach((id,i)=>options(id,['Case Owner','Marca','Sistema','País'][i],leads));
+    [['ldAgent','Case Owner'],['ldBrand','Marca'],['ldSystem','Sistema'],['ldCountry','País'],['ldChannel','Canal'],['ldGroup','Group'],['ldType','Tipo']].forEach(([id,key])=>options(id,key,leads));
     $('ldResults').hidden=false;
     $('ldMsg').textContent='Base leída correctamente: '+f.name+' · Hoja: '+chosen+' · '+leads.length+' registros · Encabezados identificados: '+best+' de '+cols.length+'.';
     render();
   }catch(err){leads=[];$('ldResults').hidden=true;$('ldMsg').textContent='No se pudo leer la base: '+(err&&err.message?err.message:String(err));}
 });
- ['ldAgent','ldBrand','ldSystem','ldCountry'].forEach(id=>$(id).addEventListener('change',render));
+ ['ldAgent','ldBrand','ldSystem','ldCountry','ldChannel','ldGroup','ldType'].forEach(id=>$(id).addEventListener('change',render));
  $('ldClear').addEventListener('click',()=>{leads=[];$('ldResults').hidden=true;$('ldFile').value='';$('ldMsg').textContent='Base retirada del análisis.'});
- $('ldExport').addEventListener('click',()=>{let rows=filtered(),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),'Detalle filtrado');[['Por agente','Case Owner'],['Por marca','Marca'],['Por sistema','Sistema'],['Por país','País'],['Por tipo','Tipo']].forEach(([name,key])=>{let data=[['Grupo','Casos','Oportunidades','Oportunidades con link','Conversión %','Links enviados','Complaints'],...group(rows,key).map(r=>r.map(x=>String(x).replace(/<[^>]*>/g,'')))];XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(data),name)});XLSX.writeFile(wb,'LEADS-analisis.xlsx')});
+ $('ldExport').addEventListener('click',()=>{let rows=filtered(),wb=XLSX.utils.book_new(),m=metric(rows);XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['Indicador','Resultado'],['Casos gestionados',m.cases],['Oportunidades detectadas',m.opp],['Tasa de oportunidad %',m.oppRate.toFixed(1)],['Oportunidades con link',m.sentOpp],['Tasa de aprovechamiento %',m.rate.toFixed(1)],['Oportunidades pendientes',m.pending],['Links enviados total',m.links],['Links fuera de oportunidad',m.nonOppLinks],['Complaints',m.complaints],['Tasa complaints %',m.complaintRate.toFixed(1)]]),'KPIs');XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),'Detalle filtrado');[['Por agente','Case Owner'],['Por país','País'],['Por marca','Marca'],['Por canal','Canal'],['Por plataforma','Sistema'],['Por grupo','Group'],['Por tipo','Tipo']].forEach(([name,key])=>{let data=[groupHeaders,...group(rows,key).map(r=>r.map(x=>String(x).replace(/<[^>]*>/g,'')))];XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(data),name)});XLSX.writeFile(wb,'LEADS-impacto-operativo.xlsx')});
  function gerMetrics(){document.querySelectorAll('.gmVal').forEach((el,i)=>{let v=el.value,g=Number(document.querySelector('.gmGoal[data-i="'+i+'"]').value),st=$('gmStatus'+i);st.textContent=v===''?'Sin datos':Number(v)>=g?'Cumple':'No cumple';st.style.color=v===''?'var(--mu)':Number(v)>=g?'var(--pro)':'var(--det)'})}
  document.querySelectorAll('.gmVal,.gmGoal').forEach(e=>e.addEventListener('input',gerMetrics));
  function addAction(a={}){let d=document.createElement('div');d.className='gm-action';d.innerHTML='<div class="row"><div><label>Indicador / foco</label><input data-k="focus" value="'+esc(a.focus||'')+'" placeholder="Ej. LEADS"></div><div><label>Acción específica</label><input data-k="action" value="'+esc(a.action||'')+'" placeholder="Qué se hará"></div><div><label>Medición / evidencia</label><input data-k="measure" value="'+esc(a.measure||'')+'" placeholder="Cómo se medirá"></div><div><label>Responsable</label><input data-k="owner" value="'+esc(a.owner||'')+'" placeholder="Responsable"></div><div><label>Fecha límite</label><input data-k="date" type="date" value="'+esc(a.date||'')+'"></div></div><button type="button" class="gmDel">Eliminar acción</button>';d.querySelector('.gmDel').onclick=()=>d.remove();$('gmSmart').appendChild(d)}
