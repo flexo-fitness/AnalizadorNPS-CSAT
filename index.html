@@ -413,7 +413,12 @@ tr.mu td{color:var(--mu)}
 </div>
 <style>
 #vLeads .stats,#vGer .stats{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
-#ldUploadCard{border:2px dashed var(--ac);background:var(--sf)}
+#vLeads[hidden]{display:none!important}
+#vLeads:not([hidden]){display:block!important}
+#ldUploadCard{display:block!important;visibility:visible!important;opacity:1!important;min-height:180px;border:3px dashed var(--ac);background:var(--sf);padding:22px!important}
+#ldUploadCard h2{font-size:1.35rem;margin-bottom:10px}
+#ldUploadCard .ld-file-label{display:inline-flex!important;visibility:visible!important}
+#ldFile{display:block!important;visibility:visible!important;opacity:1!important;position:static!important;width:100%!important;height:auto!important;max-width:560px!important;min-height:48px!important;margin:10px 0 12px!important;padding:12px!important;border:2px solid var(--ac)!important;border-radius:10px!important;background:var(--bg)!important;color:var(--ink)!important;cursor:pointer!important}
 #ldUploadCard .ld-file-label{display:inline-flex;align-items:center;justify-content:center;margin:4px 0 10px;padding:11px 18px;border-radius:9px;background:var(--ac);color:#fff;font-weight:700;cursor:pointer}
 #ldUploadCard .ld-file-label:hover{filter:brightness(.94)}
 #ldFile{display:block;width:100%;max-width:520px;margin:0 0 8px;padding:10px;border:1px solid var(--ln);border-radius:9px;background:var(--bg)}
@@ -841,6 +846,8 @@ dz.addEventListener('drop',function(e){handle(e.dataTransfer.files[0])});
 $a('fAg').addEventListener('change',render);$a('fRi').addEventListener('change',render);$a('csv').addEventListener('click',csv);
 function tab(n){['vAn','vMx','vCalc','vAc','vLeads','vGer'].forEach(function(id,i){$a(id).hidden=i!==n});['tA','tM','tB','tAc','tLeads','tGer'].forEach(function(id,i){$a(id).setAttribute('aria-selected',i===n)})}
 $a('tA').addEventListener('click',function(){tab(0)});$a('tM').addEventListener('click',function(){tab(1)});$a('tB').addEventListener('click',function(){tab(2)});$a('tAc').addEventListener('click',function(){tab(3)});$a('tLeads').addEventListener('click',function(){tab(4)});$a('tGer').addEventListener('click',function(){tab(5)});
+// Mostrar LEADS al entrar por primera vez para que el cargador quede a la vista.
+tab(4);
 function re(){if(LAST){try{D=analyze(LAST);render()}catch(e){}}}
 $a('pSla').addEventListener('change',re);$a('pMail').addEventListener('change',re);
 buildMx();
