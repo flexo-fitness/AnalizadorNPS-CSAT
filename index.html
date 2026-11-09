@@ -134,14 +134,14 @@ tr.mu td{color:var(--mu)}
 <body>
 <div class="wrap">
 <nav class="nav" role="tablist" aria-label="Secciones">
-  <button type="button" role="tab" id="tA" aria-selected="true">Análisis del reporte de casos</button>
+  <button type="button" role="tab" id="tA" aria-selected="false">Análisis del reporte de casos</button>
   <button type="button" role="tab" id="tM" aria-selected="false">Matriz de calidad</button>
   <button type="button" role="tab" id="tB" aria-selected="false">Calculadora NPS y CSAT</button>
   <button type="button" role="tab" id="tAc" aria-selected="false">Acuracidad</button>
-  <button type="button" role="tab" id="tLeads" aria-selected="false">LEADS</button>
+  <button type="button" role="tab" id="tLeads" aria-selected="true">LEADS</button>
   <button type="button" role="tab" id="tGer" aria-selected="false">Resumen gerencial</button>
 </nav>
-<div id="vAn">
+<div id="vAn" hidden>
   <header>
     <div>
       <h1>Análisis de atención por caso</h1>
@@ -365,12 +365,15 @@ tr.mu td{color:var(--mu)}
   </div>
 </div>
 
-<div id="vLeads" hidden>
+<div id="vLeads">
   <header><div><h1>LEADS — oportunidades comerciales</h1><p>Carga la base de oportunidades y analiza resultados por agente, marca, sistema, país y tipo. El archivo se procesa localmente en el navegador.</p></div></header>
-  <div class="card">
-    <h2>Cargar base LEADS</h2><p class="sub">Columnas esperadas: Data, Caso, Sales Chances, Link Sent, Complaints, País, Sistema, Marca, Tipo, Subject, Canal, Group y Case Owner.</p>
-    <input id="ldFile" type="file" accept=".xlsx,.xls,.csv">
-    <p class="mu" id="ldMsg" role="status">Esperando archivo Excel o CSV.</p>
+  <div class="card" id="ldUploadCard">
+    <h2>Cargar base LEADS desde tu computador</h2>
+    <p class="sub">Al abrir la página puedes seleccionar aquí el Excel o CSV que deseas analizar. El archivo se procesa localmente en tu navegador: no se sube a GitHub ni a ningún servidor.</p>
+    <label for="ldFile" class="ld-file-label">Seleccionar archivo Excel o CSV</label>
+    <input id="ldFile" type="file" accept=".xlsx,.xls,.csv" aria-label="Seleccionar base LEADS desde el computador">
+    <p class="mu" id="ldMsg" role="status" aria-live="polite">Todavía no has seleccionado una base LEADS.</p>
+    <p class="mu">Columnas esperadas: Data, Caso, Sales Chances, Link Sent, Complaints, País, Sistema, Marca, Tipo, Subject, Canal, Group y Case Owner.</p>
   </div>
   <div id="ldResults" hidden>
     <div class="stats" id="ldStats"></div>
@@ -407,6 +410,11 @@ tr.mu td{color:var(--mu)}
 </div>
 <style>
 #vLeads .stats,#vGer .stats{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+#ldUploadCard{border:2px dashed var(--ac);background:var(--sf)}
+#ldUploadCard .ld-file-label{display:inline-flex;align-items:center;justify-content:center;margin:4px 0 10px;padding:11px 18px;border-radius:9px;background:var(--ac);color:#fff;font-weight:700;cursor:pointer}
+#ldUploadCard .ld-file-label:hover{filter:brightness(.94)}
+#ldFile{display:block;width:100%;max-width:520px;margin:0 0 8px;padding:10px;border:1px solid var(--ln);border-radius:9px;background:var(--bg)}
+
 #vLeads table,#vGer table{width:100%;border-collapse:collapse;font-size:13px}
 #vLeads th,#vLeads td,#vGer th,#vGer td{padding:9px;border-bottom:1px solid var(--ln);text-align:left;vertical-align:top}
 #vLeads input,#vGer input,#vGer textarea,#vGer select{max-width:100%}
