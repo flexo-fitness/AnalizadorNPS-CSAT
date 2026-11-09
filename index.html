@@ -133,6 +133,18 @@ tr.mu td{color:var(--mu)}
 </head>
 <body>
 <div class="wrap">
+  <div class="card" id="ldUploadCard">
+    <h2>Cargar base LEADS desde tu computador</h2>
+    <p class="sub">Al abrir la página puedes seleccionar aquí el Excel o CSV que deseas analizar. El archivo se procesa localmente en tu navegador: no se sube a GitHub ni a ningún servidor.</p>
+    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:14px 0">
+      <button type="button" id="ldChoose" onclick="document.getElementById('ldFile').click()" style="background:var(--ac);color:#fff;border:0;padding:13px 22px;font-size:1rem;font-weight:800;border-radius:10px">📂 SUBIR BASE LEADS</button>
+      <span id="ldFileName" class="mu">Ningún archivo seleccionado</span>
+    </div>
+    <input id="ldFile" type="file" accept=".xlsx,.xls,.csv" aria-label="Seleccionar base LEADS desde el computador" style="display:block!important;visibility:visible!important;opacity:1!important;position:static!important;width:100%!important;height:auto!important;max-width:560px!important;margin:8px 0 12px!important;padding:12px!important;border:2px solid var(--ac)!important;border-radius:10px!important;background:var(--bg)!important">
+    <p class="mu" id="ldMsg" role="status" aria-live="polite">Selecciona tu archivo .xlsx, .xls o .csv para comenzar.</p>
+    <p class="mu">Columnas esperadas: Data, Caso, Sales Chances, Link Sent, Complaints, País, Sistema, Marca, Tipo, Subject, Canal, Group y Case Owner.</p>
+  </div>
+
 <nav class="nav" role="tablist" aria-label="Secciones">
   <button type="button" role="tab" id="tA" aria-selected="false">Análisis del reporte de casos</button>
   <button type="button" role="tab" id="tM" aria-selected="false">Matriz de calidad</button>
@@ -367,17 +379,6 @@ tr.mu td{color:var(--mu)}
 
 <div id="vLeads">
   <header><div><h1>LEADS — oportunidades comerciales</h1><p>Carga la base de oportunidades y analiza resultados por agente, marca, sistema, país y tipo. El archivo se procesa localmente en el navegador.</p></div></header>
-  <div class="card" id="ldUploadCard">
-    <h2>Cargar base LEADS desde tu computador</h2>
-    <p class="sub">Al abrir la página puedes seleccionar aquí el Excel o CSV que deseas analizar. El archivo se procesa localmente en tu navegador: no se sube a GitHub ni a ningún servidor.</p>
-    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:14px 0">
-      <button type="button" id="ldChoose" onclick="document.getElementById('ldFile').click()" style="background:var(--ac);color:#fff;border:0;padding:13px 22px;font-size:1rem;font-weight:800;border-radius:10px">📂 SUBIR BASE LEADS</button>
-      <span id="ldFileName" class="mu">Ningún archivo seleccionado</span>
-    </div>
-    <input id="ldFile" type="file" accept=".xlsx,.xls,.csv" aria-label="Seleccionar base LEADS desde el computador" style="display:block!important;visibility:visible!important;opacity:1!important;position:static!important;width:100%!important;height:auto!important;max-width:560px!important;margin:8px 0 12px!important;padding:12px!important;border:2px solid var(--ac)!important;border-radius:10px!important;background:var(--bg)!important">
-    <p class="mu" id="ldMsg" role="status" aria-live="polite">Selecciona tu archivo .xlsx, .xls o .csv para comenzar.</p>
-    <p class="mu">Columnas esperadas: Data, Caso, Sales Chances, Link Sent, Complaints, País, Sistema, Marca, Tipo, Subject, Canal, Group y Case Owner.</p>
-  </div>
   <div id="ldResults" hidden>
     <div class="stats" id="ldStats"></div>
     <div class="card"><h2>Filtros</h2><div class="row" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">
@@ -413,16 +414,10 @@ tr.mu td{color:var(--mu)}
 </div>
 <style>
 #vLeads .stats,#vGer .stats{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
-#vLeads[hidden]{display:none!important}
-#vLeads:not([hidden]){display:block!important}
-#ldUploadCard{display:block!important;visibility:visible!important;opacity:1!important;min-height:180px;border:3px dashed var(--ac);background:var(--sf);padding:22px!important}
+#ldUploadCard{display:block!important;visibility:visible!important;opacity:1!important;position:relative!important;z-index:5!important;border:3px dashed var(--ac)!important;background:var(--sf)!important;padding:22px!important;margin:0 0 18px!important}
 #ldUploadCard h2{font-size:1.35rem;margin-bottom:10px}
-#ldUploadCard .ld-file-label{display:inline-flex!important;visibility:visible!important}
 #ldFile{display:block!important;visibility:visible!important;opacity:1!important;position:static!important;width:100%!important;height:auto!important;max-width:560px!important;min-height:48px!important;margin:10px 0 12px!important;padding:12px!important;border:2px solid var(--ac)!important;border-radius:10px!important;background:var(--bg)!important;color:var(--ink)!important;cursor:pointer!important}
-#ldUploadCard .ld-file-label{display:inline-flex;align-items:center;justify-content:center;margin:4px 0 10px;padding:11px 18px;border-radius:9px;background:var(--ac);color:#fff;font-weight:700;cursor:pointer}
-#ldUploadCard .ld-file-label:hover{filter:brightness(.94)}
-#ldFile{display:block;width:100%;max-width:520px;margin:0 0 8px;padding:10px;border:1px solid var(--ln);border-radius:9px;background:var(--bg)}
-
+#vLeads[hidden]{display:none!important}
 #vLeads table,#vGer table{width:100%;border-collapse:collapse;font-size:13px}
 #vLeads th,#vLeads td,#vGer th,#vGer td{padding:9px;border-bottom:1px solid var(--ln);text-align:left;vertical-align:top}
 #vLeads input,#vGer input,#vGer textarea,#vGer select{max-width:100%}
