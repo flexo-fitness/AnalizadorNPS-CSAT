@@ -390,7 +390,8 @@ tr.mu td{color:var(--mu)}
       <div><label for="ldGroup">Grupo</label><select id="ldGroup"><option value="">Todos</option></select></div>
       <div><label for="ldType">Tipo de caso</label><select id="ldType"><option value="">Todos</option></select></div>
     </div><div class="btns"><button type="button" id="ldExport">Exportar análisis a Excel</button><button type="button" id="ldClear">Limpiar base cargada</button></div></div>
-    <div class="card"><h2>Impacto por agente</h2><p class="sub">Volumen, oportunidades, links enviados, aprovechamiento y oportunidades pendientes.</p><div class="tw"><table id="ldByAgent"></table></div></div>
+    <div class="card"><h2>Ranking y clasificación de agentes</h2><p class="sub">Ordenado por tasa de aprovechamiento. Para clasificar el desempeño se requieren al menos 5 oportunidades por agente; con menos datos se marca como muestra pequeña. La comparación se hace contra el promedio del conjunto filtrado, no contra una meta oficial.</p><div id="ldAgentInsights" class="ld-insights"></div><div class="tw"><table id="ldAgentRanking"></table></div></div>
+    <div class="card"><h2>Impacto detallado por agente</h2><p class="sub">Volumen, participación, oportunidades, links enviados, aprovechamiento, pendientes y complaints.</p><div class="tw"><table id="ldByAgent"></table></div></div>
     <div class="card"><h2>Impacto por país</h2><div class="tw"><table id="ldByCountry"></table></div></div>
     <div class="card"><h2>Impacto por marca</h2><div class="tw"><table id="ldByBrand"></table></div></div>
     <div class="card"><h2>Impacto por canal</h2><div class="tw"><table id="ldByChannel"></table></div></div>
@@ -424,6 +425,8 @@ tr.mu td{color:var(--mu)}
 #ldFile{display:block!important;visibility:visible!important;opacity:1!important;position:static!important;width:100%!important;height:auto!important;max-width:560px!important;min-height:48px!important;margin:10px 0 12px!important;padding:12px!important;border:2px solid var(--ac)!important;border-radius:10px!important;background:var(--bg)!important;color:var(--ink)!important;cursor:pointer!important}
 #vLeads[hidden]{display:none!important}
 #vLeads table,#vGer table{width:100%;border-collapse:collapse;font-size:13px}
+#vLeads #ldAgentRanking tbody tr:first-child{background:var(--sf)}
+#vLeads #ldAgentRanking td:nth-child(5){font-weight:700}
 #vLeads .ld-insights{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:14px}
 #vLeads .ld-insight{padding:14px;border:1px solid var(--ln);border-radius:10px;background:var(--sf)}
 #vLeads .ld-insight b{display:block;margin-bottom:6px}
@@ -467,6 +470,15 @@ tr.mu td{color:var(--mu)}
   (!$('ldGroup').value||String(r.Group||'')===$('ldGroup').value)&&
   (!$('ldType').value||String(r.Tipo||'')===$('ldType').value)
  )}
+ function agentAnalysis(rows){
+  let buckets={};
+  rows.forEach(r=>{let name=String(r['Case Owner']||'Sin dato').trim()||'Sin dato';(buckets[name]||(buckets[name]=[])).push(r)});
+  let overall=metric(rows).rate;
+  return Object.keys(buckets).map(name=>{
+   let m=metric(buckets[name]),status=m.opp<5?'Muestra pequeña':m.rate>overall?'Sobre promedio':m.rate<overall?'Bajo promedio':'En promedio';
+   return {name,metrics:m,status,delta:m.rate-overall};
+  }).sort((a,b)=>b.metrics.rate-a.metrics.rate||b.metrics.opp-a.metrics.opp||a.name.localeCompare(b.name));
+ }
  function render(){
   let rows=filtered(),m=metric(rows);
   $('ldStats').innerHTML=[
@@ -475,6 +487,9 @@ tr.mu td{color:var(--mu)}
    ['Links enviados (total)',m.links],['Links fuera de oportunidad',m.nonOppLinks],['Complaints',m.complaints],['Tasa de complaints',m.complaintRate.toFixed(1)+'%']
   ].map(x=>'<div class="kpi"><b>'+x[1]+'</b><span>'+x[0]+'</span></div>').join('');
   $('ldInsights').innerHTML='<div class="ld-insight"><b>Lectura operativa</b><span>De '+m.opp+' oportunidades detectadas, '+m.sentOpp+' terminaron con link enviado ('+m.rate.toFixed(1)+'%). Quedan '+m.pending+' oportunidades pendientes de envío.</span></div><div class="ld-insight"><b>Volumen y calidad</b><span>'+m.cases+' casos gestionados · '+m.links+' links enviados en total · '+m.complaints+' complaints ('+m.complaintRate.toFixed(1)+'% de los casos).</span></div>';
+  let agents=agentAnalysis(rows),eligible=agents.filter(a=>a.metrics.opp>=5),above=eligible.filter(a=>a.status==='Sobre promedio'),below=eligible.filter(a=>a.status==='Bajo promedio'),small=agents.filter(a=>a.status==='Muestra pequeña');
+  $('ldAgentInsights').innerHTML='<div class="ld-insight"><b>Mayor aprovechamiento</b><span>'+(agents.length?esc(agents[0].name)+' · '+agents[0].metrics.rate.toFixed(1)+'% ('+agents[0].metrics.sentOpp+'/'+agents[0].metrics.opp+' oportunidades)':'Sin agentes')+'</span></div><div class="ld-insight"><b>Prioridad de coaching</b><span>'+(below.length?below.slice().sort((a,b)=>a.metrics.rate-b.metrics.rate).slice(0,3).map(a=>esc(a.name)+' ('+a.metrics.rate.toFixed(1)+'%, '+a.metrics.pending+' pendientes)').join(' · '):'No hay agentes por debajo del promedio con muestra suficiente')+'</span></div><div class="ld-insight"><b>Lectura de muestra</b><span>'+above.length+' sobre promedio · '+below.length+' bajo promedio · '+small.length+' con menos de 5 oportunidades (no clasificados).</span></div>';
+  table('ldAgentRanking',agents.map(a=>[esc(a.name),a.metrics.cases,a.metrics.opp,a.metrics.sentOpp,a.metrics.rate.toFixed(1)+'%',a.metrics.pending,a.metrics.links,a.metrics.complaints,a.status,a.metrics.opp>=5?(a.delta>=0?'+':'')+a.delta.toFixed(1)+' pp':'—']),['Agente','Casos','Oportunidades','Con link','Aprovechamiento','Pendientes','Links totales','Complaints','Clasificación','Vs. promedio']);
   table('ldByAgent',group(rows,'Case Owner'),groupHeaders);
   table('ldByCountry',group(rows,'País'),groupHeaders);
   table('ldByBrand',group(rows,'Marca'),groupHeaders);
@@ -533,7 +548,7 @@ tr.mu td{color:var(--mu)}
 });
  ['ldAgent','ldBrand','ldSystem','ldCountry','ldChannel','ldGroup','ldType'].forEach(id=>$(id).addEventListener('change',render));
  $('ldClear').addEventListener('click',()=>{leads=[];$('ldResults').hidden=true;$('ldFile').value='';$('ldMsg').textContent='Base retirada del análisis.'});
- $('ldExport').addEventListener('click',()=>{let rows=filtered(),wb=XLSX.utils.book_new(),m=metric(rows);XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['Indicador','Resultado'],['Casos gestionados',m.cases],['Oportunidades detectadas',m.opp],['Tasa de oportunidad %',m.oppRate.toFixed(1)],['Oportunidades con link',m.sentOpp],['Tasa de aprovechamiento %',m.rate.toFixed(1)],['Oportunidades pendientes',m.pending],['Links enviados total',m.links],['Links fuera de oportunidad',m.nonOppLinks],['Complaints',m.complaints],['Tasa complaints %',m.complaintRate.toFixed(1)]]),'KPIs');XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),'Detalle filtrado');[['Por agente','Case Owner'],['Por país','País'],['Por marca','Marca'],['Por canal','Canal'],['Por plataforma','Sistema'],['Por grupo','Group'],['Por tipo','Tipo']].forEach(([name,key])=>{let data=[groupHeaders,...group(rows,key).map(r=>r.map(x=>String(x).replace(/<[^>]*>/g,'')))];XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(data),name)});XLSX.writeFile(wb,'LEADS-impacto-operativo.xlsx')});
+ $('ldExport').addEventListener('click',()=>{let rows=filtered(),wb=XLSX.utils.book_new(),m=metric(rows);XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['Indicador','Resultado'],['Casos gestionados',m.cases],['Oportunidades detectadas',m.opp],['Tasa de oportunidad %',m.oppRate.toFixed(1)],['Oportunidades con link',m.sentOpp],['Tasa de aprovechamiento %',m.rate.toFixed(1)],['Oportunidades pendientes',m.pending],['Links enviados total',m.links],['Links fuera de oportunidad',m.nonOppLinks],['Complaints',m.complaints],['Tasa complaints %',m.complaintRate.toFixed(1)]]),'KPIs');XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),'Detalle filtrado');let ar=agentAnalysis(rows);XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['Agente','Casos','Oportunidades','Con link','Aprovechamiento %','Pendientes','Links totales','Complaints','Clasificación','Diferencia vs promedio (pp)'],...ar.map(a=>[a.name,a.metrics.cases,a.metrics.opp,a.metrics.sentOpp,a.metrics.rate.toFixed(1),a.metrics.pending,a.metrics.links,a.metrics.complaints,a.status,a.metrics.opp>=5?a.delta.toFixed(1):''])]),'Ranking agentes');[['Por agente','Case Owner'],['Por país','País'],['Por marca','Marca'],['Por canal','Canal'],['Por plataforma','Sistema'],['Por grupo','Group'],['Por tipo','Tipo']].forEach(([name,key])=>{let data=[groupHeaders,...group(rows,key).map(r=>r.map(x=>String(x).replace(/<[^>]*>/g,'')))];XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(data),name)});XLSX.writeFile(wb,'LEADS-impacto-operativo.xlsx')});
  function gerMetrics(){document.querySelectorAll('.gmVal').forEach((el,i)=>{let v=el.value,g=Number(document.querySelector('.gmGoal[data-i="'+i+'"]').value),st=$('gmStatus'+i);st.textContent=v===''?'Sin datos':Number(v)>=g?'Cumple':'No cumple';st.style.color=v===''?'var(--mu)':Number(v)>=g?'var(--pro)':'var(--det)'})}
  document.querySelectorAll('.gmVal,.gmGoal').forEach(e=>e.addEventListener('input',gerMetrics));
  function addAction(a={}){let d=document.createElement('div');d.className='gm-action';d.innerHTML='<div class="row"><div><label>Indicador / foco</label><input data-k="focus" value="'+esc(a.focus||'')+'" placeholder="Ej. LEADS"></div><div><label>Acción específica</label><input data-k="action" value="'+esc(a.action||'')+'" placeholder="Qué se hará"></div><div><label>Medición / evidencia</label><input data-k="measure" value="'+esc(a.measure||'')+'" placeholder="Cómo se medirá"></div><div><label>Responsable</label><input data-k="owner" value="'+esc(a.owner||'')+'" placeholder="Responsable"></div><div><label>Fecha límite</label><input data-k="date" type="date" value="'+esc(a.date||'')+'"></div></div><button type="button" class="gmDel">Eliminar acción</button>';d.querySelector('.gmDel').onclick=()=>d.remove();$('gmSmart').appendChild(d)}
