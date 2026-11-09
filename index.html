@@ -133,19 +133,7 @@ tr.mu td{color:var(--mu)}
 </head>
 <body>
 <div class="wrap">
-  <div class="card" id="ldUploadCard">
-    <h2>Cargar base LEADS desde tu computador</h2>
-    <p class="sub">Al abrir la página puedes seleccionar aquí el Excel o CSV que deseas analizar. El archivo se procesa localmente en tu navegador: no se sube a GitHub ni a ningún servidor.</p>
-    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:14px 0">
-      <button type="button" id="ldChoose" onclick="document.getElementById('ldFile').click()" style="background:var(--ac);color:#fff;border:0;padding:13px 22px;font-size:1rem;font-weight:800;border-radius:10px">📂 SUBIR BASE LEADS</button>
-      <span id="ldFileName" class="mu">Ningún archivo seleccionado</span>
-    </div>
-    <input id="ldFile" type="file" accept=".xlsx,.xls,.csv" aria-label="Seleccionar base LEADS desde el computador" style="display:block!important;visibility:visible!important;opacity:1!important;position:static!important;width:100%!important;height:auto!important;max-width:560px!important;margin:8px 0 12px!important;padding:12px!important;border:2px solid var(--ac)!important;border-radius:10px!important;background:var(--bg)!important">
-    <p class="mu" id="ldMsg" role="status" aria-live="polite">Selecciona tu archivo .xlsx, .xls o .csv para comenzar.</p>
-    <p class="mu">Columnas esperadas: Data, Caso, Sales Chances, Link Sent, Complaints, País, Sistema, Marca, Tipo, Subject, Canal, Group y Case Owner.</p>
-  </div>
-
-<nav class="nav" role="tablist" aria-label="Secciones">
+  <nav class="nav" role="tablist" aria-label="Secciones">
   <button type="button" role="tab" id="tA" aria-selected="false">Análisis del reporte de casos</button>
   <button type="button" role="tab" id="tM" aria-selected="false">Matriz de calidad</button>
   <button type="button" role="tab" id="tB" aria-selected="false">Calculadora NPS y CSAT</button>
@@ -377,32 +365,62 @@ tr.mu td{color:var(--mu)}
   </div>
 </div>
 
+</div>
 <div id="vLeads">
-  <header><div><h1>LEADS — oportunidades comerciales</h1><p>Carga la base de oportunidades y analiza resultados por agente, marca, sistema, país y tipo. El archivo se procesa localmente en el navegador.</p></div></header>
-  <div id="ldResults" hidden>
-    <div class="card"><h2>Indicadores generales de aprovechamiento</h2><p class="sub">El aprovechamiento mide qué proporción de las oportunidades comerciales terminó con un link enviado. Todos los indicadores responden a los filtros seleccionados.</p><div class="stats" id="ldStats"></div><div id="ldInsights" class="ld-insights"></div></div>
-    <div class="card"><h2>Filtros gerenciales</h2><div class="row" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">
-      <div><label for="ldAgent">Agente / Case Owner</label><select id="ldAgent"><option value="">Todos</option></select></div>
-      <div><label for="ldCountry">País</label><select id="ldCountry"><option value="">Todos</option></select></div>
-      <div><label for="ldBrand">Marca</label><select id="ldBrand"><option value="">Todas</option></select></div>
-      <div><label for="ldChannel">Canal</label><select id="ldChannel"><option value="">Todos</option></select></div>
-      <div><label for="ldSystem">Sistema / plataforma</label><select id="ldSystem"><option value="">Todos</option></select></div>
-      <div><label for="ldGroup">Grupo</label><select id="ldGroup"><option value="">Todos</option></select></div>
-      <div><label for="ldType">Tipo de caso</label><select id="ldType"><option value="">Todos</option></select></div>
-    </div><div class="btns"><button type="button" id="ldExport">Exportar análisis a Excel</button><button type="button" id="ldClear">Limpiar base cargada</button></div></div>
-    <div class="card"><h2>Ranking y clasificación de agentes</h2><p class="sub">Ordenado por tasa de aprovechamiento. Para clasificar el desempeño se requieren al menos 5 oportunidades por agente; con menos datos se marca como muestra pequeña. La comparación se hace contra el promedio del conjunto filtrado, no contra una meta oficial.</p><div id="ldAgentInsights" class="ld-insights"></div><div class="tw"><table id="ldAgentRanking"></table></div></div>
-    <div class="card"><h2>Impacto detallado por agente</h2><p class="sub">Volumen, participación, oportunidades, links enviados, aprovechamiento, pendientes y complaints.</p><div class="tw"><table id="ldByAgent"></table></div></div>
-    <div class="card"><h2>Impacto por país</h2><div class="tw"><table id="ldByCountry"></table></div></div>
-    <div class="card"><h2>Impacto por marca</h2><div class="tw"><table id="ldByBrand"></table></div></div>
-    <div class="card"><h2>Impacto por canal</h2><div class="tw"><table id="ldByChannel"></table></div></div>
-    <div class="card"><h2>Impacto por plataforma</h2><div class="tw"><table id="ldBySystem"></table></div></div>
-    <div class="card"><h2>Impacto por grupo</h2><div class="tw"><table id="ldByGroup"></table></div></div>
-    <div class="card"><h2>Impacto por tipo de caso</h2><div class="tw"><table id="ldByType"></table></div></div>
-    <div class="card"><h2>Detalle individual por caso</h2><p class="sub">Se muestran hasta 1.500 registros; la exportación incluye todos los registros filtrados.</p><div class="tw"><table id="ldDetail"></table></div></div>
+<header><div><h1>Leads — aprovechamiento de oportunidades</h1><p>Carga el Excel de Leads (Data, Caso, Sales Chances, Link Sent, Complaints, País, Sistema, Marca, Tipo, Subject, Canal, Group y Case Owner) y calcula la tasa de aprovechamiento contra su meta: de las oportunidades detectadas, cuántas terminaron con un link enviado.</p></div></header>
+<div class="card">
+  <h2>Cargar base de Leads</h2>
+  <p class="sub">Se reconocen los encabezados aunque cambien de fila, tildes o mayúsculas, y se ignoran pies de página como “Applied filters”. El archivo se procesa solo en tu navegador.</p>
+  <div class="drop" style="margin:0"><input id="ldFile" type="file" accept=".xlsx,.xls,.csv" aria-label="Cargar Excel de Leads"><span id="ldFileName" class="mu"></span><p class="mu" id="ldMsg" style="margin:8px 0 0" role="status">Esperando archivo.</p></div>
+  <div class="row" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-top:14px">
+    <div><label for="ldMeta">Meta aprovechamiento (%)</label><input id="ldMeta" type="number" step="0.1" value="80"></div>
+    <div><label for="ldAgent">Especialista</label><select id="ldAgent"><option value="">Todos</option></select></div>
+    <div><label for="ldCountry">País</label><select id="ldCountry"><option value="">Todos</option></select></div>
+    <div><label for="ldBrand">Marca</label><select id="ldBrand"><option value="">Todas</option></select></div>
+    <div><label for="ldSystem">Plataforma</label><select id="ldSystem"><option value="">Todas</option></select></div>
+    <div><label for="ldChannel">Canal</label><select id="ldChannel"><option value="">Todos</option></select></div>
+    <div><label for="ldGroup">Grupo</label><select id="ldGroup"><option value="">Todos</option></select></div>
+    <div><label for="ldType">Tipo de caso</label><select id="ldType"><option value="">Todos</option></select></div>
   </div>
+  <div class="btns" style="margin-top:12px;justify-content:flex-end"><button type="button" id="ldExport" style="background:var(--ac);border-color:var(--ac);color:var(--sf)">Exportar Excel</button><button type="button" id="ldClear">↺ Limpiar</button></div>
+</div>
+<div id="ldResults" hidden>
+  <div class="stats" id="ldStats" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))"></div>
+  <p class="mu" id="ldCov"></p>
+  <div id="ldInsights" class="ld-insights"></div>
+  <div class="card"><h2>Gráficos gerenciales</h2><p class="sub">La línea negra marca la meta de aprovechamiento. Verde cumple, rojo no cumple. Responden a los filtros.</p><div class="cgrid">
+    <div><h3 class="st2">Embudo de oportunidades</h3><div id="chFun"></div></div>
+    <div><h3 class="st2">Aprovechamiento por especialista</h3><div id="chAg"></div></div>
+    <div><h3 class="st2">Aprovechamiento por plataforma</h3><div id="chPf"></div></div>
+    <div><h3 class="st2">Aprovechamiento por país</h3><div id="chPa"></div></div>
+    <div><h3 class="st2">Oportunidades por marca</h3><div id="chMk"></div><p class="lg"><b style="color:var(--pro)">■</b> con link &nbsp; <b style="color:var(--det)">■</b> pendientes</p></div>
+    <div><h3 class="st2">Aprovechamiento por día</h3><div id="chDy"></div></div></div></div>
+  <div class="card"><h2>Por especialista</h2><p class="sub">Aprovechamiento = oportunidades con link ÷ oportunidades de cada persona. En rojo, lo que está por debajo de la meta. Con menos de 5 oportunidades se marca como muestra pequeña.</p><div id="ldAgentInsights" class="ld-insights"></div><div class="tw"><table id="ldAgentRanking"></table></div></div>
+  <div class="card"><h2>Por plataforma</h2><div class="tw"><table id="ldBySystem"></table></div></div>
+  <div class="card"><h2>Por país</h2><div class="tw"><table id="ldByCountry"></table></div></div>
+  <div class="card"><h2>Por marca</h2><div class="tw"><table id="ldByBrand"></table></div></div>
+  <div class="card"><h2>Por canal</h2><div class="tw"><table id="ldByChannel"></table></div></div>
+  <div class="card"><h2>Por día</h2><div class="tw"><table id="ldByDay"></table></div></div>
+  <div class="card"><h2>Por tipo de caso</h2><div class="tw"><table id="ldByType"></table></div></div>
+  <div class="card"><h2>Oportunidades pendientes</h2><p class="sub">Casos con oportunidad (Sales Chances) sin link enviado: es lo que hay que recuperar para llegar a la meta.</p><div class="tw"><table id="ldPend"></table></div></div>
+  <div class="card"><h2>Acta de seguimiento por especialista</h2>
+    <p class="sub">Arma el acta con los resultados de Leads contra la meta y un plan de acción SMART. Cópiala para un correo o Teams, o descárgala en Word.</p>
+    <div class="row" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))"><div><label for="ldActaEsp">Especialista</label><select id="ldActaEsp"></select></div></div>
+    <h3 class="st2">Plan de acción SMART</h3>
+    <div class="btns" style="margin:0 0 6px;flex-wrap:wrap"><button type="button" id="ldSug" style="background:var(--ac);border-color:var(--ac);color:var(--sf)">Sugerir plan SMART desde los resultados</button></div>
+    <textarea id="ldPlan" rows="6" placeholder="S, M, A, R, T. Se guarda por especialista en este navegador." style="width:100%"></textarea>
+    <div class="btns" style="margin-top:12px;flex-wrap:wrap"><button type="button" id="ldCopy" style="background:var(--ac);border-color:var(--ac);color:var(--sf)">Copiar acta (correo / Teams)</button><button type="button" id="ldDoc">Descargar Word</button><button type="button" id="ldPrint">Imprimir / PDF</button></div>
+    <p class="mu" id="ldActaMsg" role="status" style="margin:8px 0 0"></p><div id="ldActaPrev" style="margin-top:10px"></div></div>
+  <div class="card" style="font-size:.9rem;color:var(--mu)"><b style="color:var(--ink)">Cómo se calcula</b><ul style="margin:6px 0 0;padding-left:20px">
+    <li><b>Oportunidad</b> = caso con Sales Chances = 1. <b>Oportunidad aprovechada</b> = oportunidad con Link Sent = 1.</li>
+    <li><b>Aprovechamiento</b> = oportunidades con link ÷ oportunidades. <b>Pendientes</b> = oportunidades sin link. <b>Links fuera de oportunidad</b> = links en casos sin oportunidad (no suman al aprovechamiento).</li>
+    <li>La meta es editable y se aplica a todas las tablas y al acta.</li></ul></div>
+</div>
 </div>
 <div id="vGer" hidden>
  <header><div><h1>Resumen gerencial</h1><p>Consolidado de indicadores, cumplimiento de metas, acuerdos y plan de acción SMART.</p></div></header>
+ <div class="card"><h2>Resultados por agente</h2><p class="sub">Elige un especialista para traer sus resultados de NPS, CSAT, Acuracidad y Leads desde las demás pestañas (carga primero las bases). “Todo el equipo” usa el consolidado.</p><div class="row row2"><div><label for="gmAgent">Especialista</label><select id="gmAgent"><option value="">Todo el equipo</option></select></div><div style="align-self:end"><button type="button" id="gmLoad">Actualizar datos</button></div></div></div>
+ <div class="card"><h2>Resultado vs meta y qué aplica al plan</h2><p class="sub">Los indicadores bajo la meta aplican al plan de acción, ordenados por la brecha más grande. Los que cumplen quedan en seguimiento.</p><div id="gmChart"></div><div class="tw" style="margin-top:12px"><table id="gmEval"></table></div></div>
  <div class="card"><h2>Periodo y responsable</h2><div class="row row2">
   <div><label for="gmPeriod">Periodo evaluado</label><input id="gmPeriod" placeholder="Ej. Octubre 2026"></div>
   <div><label for="gmLeader">Líder responsable</label><input id="gmLeader" placeholder="Nombre del líder"></div>
@@ -414,15 +432,12 @@ tr.mu td{color:var(--mu)}
  </div>
  <div class="card"><h2>Conclusiones y acuerdos gerenciales</h2><textarea id="gmAgreements" rows="5" placeholder="Fortalezas, brechas, causas, acuerdos y compromisos definidos en la reunión..."></textarea></div>
  <div class="card"><h2>Plan de acción SMART</h2><p class="sub">Define acciones específicas, medibles, alcanzables, relevantes y con fecha límite.</p>
-  <div id="gmSmart"></div><div class="btns"><button type="button" id="gmAdd">+ Agregar acción</button><button type="button" id="gmSuggest">Cargar borrador sugerido</button></div>
+  <div id="gmSmart"></div><div class="btns"><button type="button" id="gmPlanAg" style="background:var(--ac);border-color:var(--ac);color:var(--sf)">Generar plan SMART del agente</button><button type="button" id="gmAdd">+ Agregar acción</button><button type="button" id="gmSuggest">Cargar borrador sugerido</button></div>
  </div>
  <div class="card"><h2>Acta gerencial</h2><div class="btns"><button type="button" id="gmWord">Descargar Word</button><button type="button" id="gmPrint">Imprimir / Guardar PDF</button><button type="button" id="gmCopy">Copiar acta</button></div><p class="mu" id="gmMsg" role="status"></p></div>
 </div>
 <style>
 #vLeads .stats,#vGer .stats{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
-#ldUploadCard{display:block!important;visibility:visible!important;opacity:1!important;position:relative!important;z-index:5!important;border:3px dashed var(--ac)!important;background:var(--sf)!important;padding:22px!important;margin:0 0 18px!important}
-#ldUploadCard h2{font-size:1.35rem;margin-bottom:10px}
-#ldFile{display:block!important;visibility:visible!important;opacity:1!important;position:static!important;width:100%!important;height:auto!important;max-width:560px!important;min-height:48px!important;margin:10px 0 12px!important;padding:12px!important;border:2px solid var(--ac)!important;border-radius:10px!important;background:var(--bg)!important;color:var(--ink)!important;cursor:pointer!important}
 #vLeads[hidden]{display:none!important}
 #vLeads table,#vGer table{width:100%;border-collapse:collapse;font-size:13px}
 #vLeads #ldAgentRanking tbody tr:first-child{background:var(--sf)}
@@ -437,6 +452,13 @@ tr.mu td{color:var(--mu)}
 #vLeads input,#vGer input,#vGer textarea,#vGer select{max-width:100%}
 .gm-action{border:1px solid var(--ln);border-radius:12px;padding:12px;margin:10px 0;background:var(--sf)}
 .gm-action .row{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+#vLeads .cgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:18px}
+.bc{display:grid;grid-template-columns:minmax(100px,24%) 1fr 74px;gap:8px;align-items:center;margin:7px 0;font-size:13px}
+.bc .tk{position:relative;height:18px;background:var(--sh);border-radius:99px;display:flex}
+.bc .fl{height:100%;border-radius:99px}.bc .sg{height:100%}.bc .sg:first-child{border-radius:99px 0 0 99px}
+.bc .mt{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink)}
+.bc .lb{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bc .vl{text-align:right;font-weight:700}
+.lg{font-size:12px;color:var(--mu);margin-top:6px}
 </style>
 <script>
 (function(){
@@ -444,14 +466,14 @@ tr.mu td{color:var(--mu)}
  let leads=[],smart=[];
  const cols=['Data','Caso','Sales Chances','Link Sent','Complaints','País','Sistema','Marca','Tipo','Subject','Canal','Group','Case Owner'];
  const norm=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
- const yes=x=>['1','1.0','si','sí','yes','true','y'].includes(String(x==null?'':x).trim().toLowerCase());
+ const yes=x=>{const v=String(x==null?'':x).trim().toLowerCase();if(['si','sí','yes','true','y'].includes(v))return true;const n=parseFloat(v.replace(',','.'));return isFinite(n)&&n>0};
  function metric(rows){
   let opp=rows.filter(r=>yes(r['Sales Chances'])),sentOpp=opp.filter(r=>yes(r['Link Sent'])),links=rows.filter(r=>yes(r['Link Sent'])),complaints=rows.filter(r=>yes(r.Complaints));
   let pending=opp.length-sentOpp.length;
   return {cases:rows.length,opp:opp.length,oppRate:rows.length?opp.length/rows.length*100:0,sentOpp:sentOpp.length,rate:opp.length?sentOpp.length/opp.length*100:0,pending,links:links.length,nonOppLinks:links.length-sentOpp.length,complaints:complaints.length,complaintRate:rows.length?complaints.length/rows.length*100:0};
  }
  function table(id,rows,headers){$(id).innerHTML='<thead><tr>'+headers.map(x=>'<th>'+esc(x)+'</th>').join('')+'</tr></thead><tbody>'+rows.map(r=>'<tr>'+r.map(x=>'<td>'+x+'</td>').join('')+'</tr>').join('')+'</tbody>'}
- function group(rows,key){
+ function groupOld(rows,key){
   let m={};rows.forEach(r=>{let k=String(r[key]||'Sin dato').trim()||'Sin dato';(m[k]||(m[k]=[])).push(r)});
   let total=metric(rows);
   return Object.keys(m).sort((a,b)=>a.localeCompare(b)).map(k=>{
@@ -479,26 +501,42 @@ tr.mu td{color:var(--mu)}
    return {name,metrics:m,status,delta:m.rate-overall};
   }).sort((a,b)=>b.metrics.rate-a.metrics.rate||b.metrics.opp-a.metrics.opp||a.name.localeCompare(b.name));
  }
- function render(){
-  let rows=filtered(),m=metric(rows);
-  $('ldStats').innerHTML=[
-   ['Casos gestionados',m.cases],['Oportunidades detectadas',m.opp],['Tasa de oportunidad',m.oppRate.toFixed(1)+'%'],
-   ['Oportunidades con link',m.sentOpp],['Tasa de aprovechamiento',m.rate.toFixed(1)+'%'],['Oportunidades pendientes',m.pending],
-   ['Links enviados (total)',m.links],['Links fuera de oportunidad',m.nonOppLinks],['Complaints',m.complaints],['Tasa de complaints',m.complaintRate.toFixed(1)+'%']
-  ].map(x=>'<div class="kpi"><b>'+x[1]+'</b><span>'+x[0]+'</span></div>').join('');
-  $('ldInsights').innerHTML='<div class="ld-insight"><b>Lectura operativa</b><span>De '+m.opp+' oportunidades detectadas, '+m.sentOpp+' terminaron con link enviado ('+m.rate.toFixed(1)+'%). Quedan '+m.pending+' oportunidades pendientes de envío.</span></div><div class="ld-insight"><b>Volumen y calidad</b><span>'+m.cases+' casos gestionados · '+m.links+' links enviados en total · '+m.complaints+' complaints ('+m.complaintRate.toFixed(1)+'% de los casos).</span></div>';
-  let agents=agentAnalysis(rows),eligible=agents.filter(a=>a.metrics.opp>=5),above=eligible.filter(a=>a.status==='Sobre promedio'),below=eligible.filter(a=>a.status==='Bajo promedio'),small=agents.filter(a=>a.status==='Muestra pequeña');
-  $('ldAgentInsights').innerHTML='<div class="ld-insight"><b>Mayor aprovechamiento</b><span>'+(agents.length?esc(agents[0].name)+' · '+agents[0].metrics.rate.toFixed(1)+'% ('+agents[0].metrics.sentOpp+'/'+agents[0].metrics.opp+' oportunidades)':'Sin agentes')+'</span></div><div class="ld-insight"><b>Prioridad de coaching</b><span>'+(below.length?below.slice().sort((a,b)=>a.metrics.rate-b.metrics.rate).slice(0,3).map(a=>esc(a.name)+' ('+a.metrics.rate.toFixed(1)+'%, '+a.metrics.pending+' pendientes)').join(' · '):'No hay agentes por debajo del promedio con muestra suficiente')+'</span></div><div class="ld-insight"><b>Lectura de muestra</b><span>'+above.length+' sobre promedio · '+below.length+' bajo promedio · '+small.length+' con menos de 5 oportunidades (no clasificados).</span></div>';
-  table('ldAgentRanking',agents.map(a=>[esc(a.name),a.metrics.cases,a.metrics.opp,a.metrics.sentOpp,a.metrics.rate.toFixed(1)+'%',a.metrics.pending,a.metrics.links,a.metrics.complaints,a.status,a.metrics.opp>=5?(a.delta>=0?'+':'')+a.delta.toFixed(1)+' pp':'—']),['Agente','Casos','Oportunidades','Con link','Aprovechamiento','Pendientes','Links totales','Complaints','Clasificación','Vs. promedio']);
-  table('ldByAgent',group(rows,'Case Owner'),groupHeaders);
-  table('ldByCountry',group(rows,'País'),groupHeaders);
-  table('ldByBrand',group(rows,'Marca'),groupHeaders);
-  table('ldByChannel',group(rows,'Canal'),groupHeaders);
-  table('ldBySystem',group(rows,'Sistema'),groupHeaders);
-  table('ldByGroup',group(rows,'Group'),groupHeaders);
-  table('ldByType',group(rows,'Tipo'),groupHeaders);
-  table('ldDetail',rows.slice(0,1500).map(r=>cols.map(c=>esc(r[c]||''))),cols);
+ function metaV(){let v=parseFloat($('ldMeta').value);return isFinite(v)?v:80}
+ const pr=(r,m)=>m.opp?'<b class="'+(r>=metaV()-1e-9?'sc-a':'sc-b')+'">'+r.toFixed(1)+'%</b>':'–';
+ function group(rows,key){
+  let m={};rows.forEach(r=>{let k=String(r[key]||'Sin dato').trim()||'Sin dato';(m[k]||(m[k]=[])).push(r)});
+  let total=metric(rows),ks=Object.keys(m).sort((a,b)=>a.localeCompare(b));
+  if(key==='Data'&&ks.every(k=>!isNaN(Date.parse(k))))ks.sort((a,b)=>Date.parse(a)-Date.parse(b));
+  return ks.map(k=>{let z=metric(m[k]);return [esc(k),z.cases,(total.cases?z.cases/total.cases*100:0).toFixed(1)+'%',z.opp,(total.opp?z.opp/total.opp*100:0).toFixed(1)+'%',z.sentOpp,pr(z.rate,z),z.pending,z.links,z.complaints,z.complaintRate.toFixed(1)+'%']});
  }
+ function kp(t,v,tag,l1,l2){return '<div class="kpi"><small>'+t+'</small><b'+(tag?'':'')+'>'+v+'</b>'+(l1?'<span class="sm">'+l1+'</span>':'')+(l2?'<span class="sm">'+l2+'</span>':'')+'</div>'}
+ function plan(esp){let m=metric(leads.filter(r=>!esp||r['Case Owner']===esp)),meta=metaV(),need=Math.max(0,Math.ceil(meta/100*m.opp-1e-9)-m.sentOpp);
+  return 'S (Específico): enviar el link de compra en las '+m.pending+' oportunidades pendientes y en toda oportunidad nueva, registrándolo en el caso.\nM (Medible): pasar de '+m.rate.toFixed(1)+'% a ≥ '+meta+'% de aprovechamiento ('+need+' link(s) adicional(es) sobre '+m.opp+' oportunidades).\nA (Alcanzable): con revisión diaria de oportunidades sin link y acompañamiento del líder.\nR (Relevante): cada link enviado convierte la oportunidad en una posible venta.\nT (Tiempo): cumplir la meta antes de ____/____/______.'}
+ function actaT(){let esp=$('ldActaEsp').value,rows=leads.filter(r=>!esp||r['Case Owner']===esp),m=metric(rows),meta=metaV(),ok=m.opp&&m.rate>=meta-1e-9,pend=rows.filter(r=>yes(r['Sales Chances'])&&!yes(r['Link Sent'])).map(r=>r.Caso).filter(Boolean);
+  return ['ACTA DE SEGUIMIENTO — LEADS','Especialista: '+(esp||'Todo el equipo'),'Fecha: '+new Date().toLocaleDateString('es-CO'),'','RESULTADOS','- Casos gestionados: '+m.cases,'- Oportunidades: '+m.opp+' ('+m.oppRate.toFixed(1)+'% de los casos)','- Oportunidades con link: '+m.sentOpp,'- Aprovechamiento: '+(m.opp?m.rate.toFixed(1)+'%':'sin oportunidades')+' (meta ≥ '+meta+'%) '+(m.opp?(ok?'CUMPLE':'NO CUMPLE'):''),'- Oportunidades pendientes: '+m.pending+(pend.length?' (casos: '+pend.slice(0,15).join(', ')+(pend.length>15?'…':'')+')':''),'- Links fuera de oportunidad: '+m.nonOppLinks,'- Complaints: '+m.complaints,'','PLAN DE ACCIÓN SMART',$('ldPlan').value||'(sin plan registrado)'].join('\n')}
+ function actaR(){let k='ccc_ld_plan_'+$('ldActaEsp').value;if(document.activeElement!==$('ldPlan'))$('ldPlan').value=localStorage.getItem(k)||'';$('ldActaPrev').innerHTML='<div style="background:#fff;color:#10242b;border:1px solid var(--ln);border-radius:8px;padding:16px;white-space:pre-wrap;overflow:auto">'+esc(actaT())+'</div>'}
+ function render(){
+  let rows=filtered(),m=metric(rows),meta=metaV(),ok=m.opp&&m.rate>=meta-1e-9,need=Math.max(0,Math.ceil(meta/100*m.opp-1e-9)-m.sentOpp);
+  $('ldStats').innerHTML='<div class="kpi"><small>Aprovechamiento de oportunidades</small>'+(m.opp?'<b class="'+(ok?'sc-a':'sc-b')+'">'+m.rate.toFixed(1)+'%</b><span class="tag" style="'+(ok?'':'background:var(--det);color:#fff')+'">'+(ok?'Cumple':'No cumple')+' · meta ≥ '+meta+'%</span><span class="sm">'+m.sentOpp+' de '+m.opp+' oportunidades con link enviado</span><span class="sm">'+(ok?'Meta alcanzada':'Faltan '+need+' link(s) para llegar a la meta')+'</span>':'<b class="mu">–</b><span class="sm">Sin oportunidades en esta base</span>')+'</div>'+
+   kp('Casos gestionados',m.cases,0,m.opp+' con oportunidad ('+m.oppRate.toFixed(1)+'%)')+kp('Oportunidades pendientes',m.pending,0,'Con oportunidad y sin link')+kp('Links enviados (total)',m.links,0,m.nonOppLinks+' fuera de oportunidad')+kp('Complaints',m.complaints,0,m.complaintRate.toFixed(1)+'% de los casos');
+  let ds=rows.map(r=>String(r.Data||'')).filter(Boolean).sort((a,b)=>(Date.parse(a)||0)-(Date.parse(b)||0));
+  $('ldCov').textContent=m.cases+' caso(s) en el análisis'+(ds.length?' · '+ds[0]+(ds[ds.length-1]!==ds[0]?' a '+ds[ds.length-1]:''):'')+'.';
+  $('ldInsights').innerHTML='<div class="ld-insight"><b>Lectura operativa</b><span>De '+m.opp+' oportunidades, '+m.sentOpp+' terminaron con link enviado ('+m.rate.toFixed(1)+'%). Quedan '+m.pending+' pendientes de envío.</span></div>';
+  let agents=agentAnalysis(rows),el=agents.filter(a=>a.metrics.opp>=5),below=el.filter(a=>a.status==='Bajo promedio');
+  $('ldAgentInsights').innerHTML='<div class="ld-insight"><b>Mayor aprovechamiento</b><span>'+(agents.length?esc(agents[0].name)+' · '+agents[0].metrics.rate.toFixed(1)+'% ('+agents[0].metrics.sentOpp+'/'+agents[0].metrics.opp+')':'Sin agentes')+'</span></div><div class="ld-insight"><b>Prioridad de coaching</b><span>'+(below.length?below.slice().sort((a,b)=>a.metrics.rate-b.metrics.rate).map(a=>esc(a.name)+' ('+a.metrics.rate.toFixed(1)+'%)').join(', '):'Ningún agente con 5+ oportunidades está bajo el promedio.')+'</span></div>';
+  table('ldAgentRanking',agents.map(a=>[esc(a.name),a.metrics.cases,a.metrics.opp,a.metrics.sentOpp,pr(a.metrics.rate,a.metrics),a.metrics.pending,a.metrics.links,a.metrics.complaints,a.status,a.metrics.opp>=5?(a.delta>=0?'+':'')+a.delta.toFixed(1)+' pp':'—']),['Especialista','Casos','Oportunidades','Con link','Aprovechamiento','Pendientes','Links totales','Complaints','Clasificación','Vs. promedio']);
+  [['ldBySystem','Sistema'],['ldByCountry','País'],['ldByBrand','Marca'],['ldByChannel','Canal'],['ldByDay','Data'],['ldByType','Tipo']].forEach(x=>table(x[0],group(rows,x[1]),groupHeaders));
+  table('ldPend',rows.filter(r=>yes(r['Sales Chances'])&&!yes(r['Link Sent'])).slice(0,1500).map(r=>['Caso','Data','Case Owner','País','Marca','Sistema','Canal','Subject'].map(c=>esc(r[c]||''))),['Caso','Fecha','Especialista','País','Marca','Plataforma','Canal','Subject']);
+  let cur=$('ldActaEsp').value,names=[...new Set(leads.map(r=>String(r['Case Owner']||'').trim()).filter(Boolean))].sort();
+  $('ldActaEsp').innerHTML='<option value="">Todo el equipo</option>'+names.map(x=>'<option value="'+esc(x)+'">'+esc(x)+'</option>').join('');$('ldActaEsp').value=names.includes(cur)?cur:($('ldAgent').value||'');actaR();charts(rows,m);
+ }
+ $('ldMeta').addEventListener('input',render);$('ldActaEsp').addEventListener('change',actaR);
+ $('ldPlan').addEventListener('input',()=>{localStorage.setItem('ccc_ld_plan_'+$('ldActaEsp').value,$('ldPlan').value);actaR()});
+ $('ldSug').addEventListener('click',()=>{$('ldPlan').value=plan($('ldActaEsp').value);localStorage.setItem('ccc_ld_plan_'+$('ldActaEsp').value,$('ldPlan').value);actaR()});
+ $('ldCopy').addEventListener('click',()=>navigator.clipboard.writeText(actaT()).then(()=>$('ldActaMsg').textContent='Acta copiada.').catch(()=>$('ldActaMsg').textContent='No se pudo copiar.'));
+ $('ldDoc').addEventListener('click',()=>{let a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff<html><meta charset="utf-8"><body style="font-family:Arial;font-size:13px">'+esc(actaT()).replace(/\n/g,'<br>')+'</body></html>'],{type:'application/msword'}));a.download='Acta-Leads.doc';document.body.appendChild(a);a.click();a.remove()});
+ $('ldPrint').addEventListener('click',()=>{let w=window.open('','_blank');if(!w){$('ldActaMsg').textContent='Permite las ventanas emergentes para imprimir.';return}w.document.write('<html><meta charset="utf-8"><body style="font-family:Arial;font-size:13px">'+esc(actaT()).replace(/\n/g,'<br>')+'</body></html>');w.document.close();w.print()});
+
  $('ldFile').addEventListener('change',async e=>{
   let f=e.target.files&&e.target.files[0];if(!f)return;
   $('ldFileName').textContent='Archivo: '+f.name;
@@ -537,8 +575,15 @@ tr.mu td{color:var(--mu)}
     if(headerIndex<0||headerMap['Sales Chances']===undefined||headerMap['Link Sent']===undefined){
       throw Error('No identifiqué las columnas obligatorias “Sales Chances” y “Link Sent”. Revisa los encabezados de la primera hoja. Encabezados detectados: '+(matrix[0]||[]).filter(Boolean).join(' | '));
     }
-    let dataRows=matrix.slice(headerIndex+1).filter(row=>row.some(v=>String(v==null?'':v).trim()!==''));
-    leads=dataRows.map(row=>{let o={};cols.forEach(c=>{let ci=headerMap[c];o[c]=ci===undefined?'':(row[ci]===undefined?'':row[ci])});return o});
+    const clean=v=>typeof v==='string'?v.replace(/\u00a0/g,' ').replace(/\s+/g,' ').trim():v;
+    const cellAt=(row,c)=>headerMap[c]===undefined?'':clean(row[headerMap[c]]);
+    let dataRows=matrix.slice(headerIndex+1).filter(row=>{
+      /* descarta pies de página (p. ej. "Applied filters"), totales y filas vacías: un caso real trae número de caso o agente, y oportunidad/link */
+      const hasId=String(cellAt(row,'Caso')).trim()!==''||String(cellAt(row,'Case Owner')).trim()!=='';
+      const hasMetric=String(cellAt(row,'Sales Chances')).trim()!==''||String(cellAt(row,'Link Sent')).trim()!=='';
+      return hasId&&hasMetric;
+    });
+    leads=dataRows.map(row=>{let o={};cols.forEach(c=>{let ci=headerMap[c];o[c]=ci===undefined?'':(row[ci]===undefined?'':clean(row[ci]))});return o});
     if(!leads.length)throw Error('Encontré los encabezados en la fila '+(headerIndex+1)+', pero no hay registros debajo.');
     [['ldAgent','Case Owner'],['ldBrand','Marca'],['ldSystem','Sistema'],['ldCountry','País'],['ldChannel','Canal'],['ldGroup','Group'],['ldType','Tipo']].forEach(([id,key])=>options(id,key,leads));
     $('ldResults').hidden=false;
@@ -549,20 +594,58 @@ tr.mu td{color:var(--mu)}
  ['ldAgent','ldBrand','ldSystem','ldCountry','ldChannel','ldGroup','ldType'].forEach(id=>$(id).addEventListener('change',render));
  $('ldClear').addEventListener('click',()=>{leads=[];$('ldResults').hidden=true;$('ldFile').value='';$('ldMsg').textContent='Base retirada del análisis.'});
  $('ldExport').addEventListener('click',()=>{let rows=filtered(),wb=XLSX.utils.book_new(),m=metric(rows);XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['Indicador','Resultado'],['Casos gestionados',m.cases],['Oportunidades detectadas',m.opp],['Tasa de oportunidad %',m.oppRate.toFixed(1)],['Oportunidades con link',m.sentOpp],['Tasa de aprovechamiento %',m.rate.toFixed(1)],['Oportunidades pendientes',m.pending],['Links enviados total',m.links],['Links fuera de oportunidad',m.nonOppLinks],['Complaints',m.complaints],['Tasa complaints %',m.complaintRate.toFixed(1)]]),'KPIs');XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),'Detalle filtrado');let ar=agentAnalysis(rows);XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['Agente','Casos','Oportunidades','Con link','Aprovechamiento %','Pendientes','Links totales','Complaints','Clasificación','Diferencia vs promedio (pp)'],...ar.map(a=>[a.name,a.metrics.cases,a.metrics.opp,a.metrics.sentOpp,a.metrics.rate.toFixed(1),a.metrics.pending,a.metrics.links,a.metrics.complaints,a.status,a.metrics.opp>=5?a.delta.toFixed(1):''])]),'Ranking agentes');[['Por agente','Case Owner'],['Por país','País'],['Por marca','Marca'],['Por canal','Canal'],['Por plataforma','Sistema'],['Por grupo','Group'],['Por tipo','Tipo']].forEach(([name,key])=>{let data=[groupHeaders,...group(rows,key).map(r=>r.map(x=>String(x).replace(/<[^>]*>/g,'')))];XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(data),name)});XLSX.writeFile(wb,'LEADS-impacto-operativo.xlsx')});
- function gerMetrics(){document.querySelectorAll('.gmVal').forEach((el,i)=>{let v=el.value,g=Number(document.querySelector('.gmGoal[data-i="'+i+'"]').value),st=$('gmStatus'+i);st.textContent=v===''?'Sin datos':Number(v)>=g?'Cumple':'No cumple';st.style.color=v===''?'var(--mu)':Number(v)>=g?'var(--pro)':'var(--det)'})}
+ function gerMetrics0(){document.querySelectorAll('.gmVal').forEach((el,i)=>{let v=el.value,g=Number(document.querySelector('.gmGoal[data-i="'+i+'"]').value),st=$('gmStatus'+i);st.textContent=v===''?'Sin datos':Number(v)>=g?'Cumple':'No cumple';st.style.color=v===''?'var(--mu)':Number(v)>=g?'var(--pro)':'var(--det)'})}
+ /* ===== gráficos ===== */
+ function bars(id,items,meta){$(id).innerHTML=items.length?items.map(x=>{const v=Math.max(0,Math.min(100,x.v)),ok=meta==null?true:x.v>=meta-1e-9;return '<div class="bc"><span class="lb" title="'+esc(x.l)+'">'+esc(x.l)+'</span><div class="tk"><div class="fl" style="width:'+v+'%;background:'+(meta==null?'var(--ac)':ok?'var(--pro)':'var(--det)')+'"></div>'+(meta!=null?'<i class="mt" style="left:'+Math.min(100,meta)+'%"></i>':'')+'</div><span class="vl">'+esc(x.t)+'</span></div>'}).join(''):'<p class="mu">Sin datos.</p>'}
+ function stack(id,items){const mx=Math.max(1,...items.map(x=>x.a+x.b));$(id).innerHTML=items.length?items.map(x=>'<div class="bc"><span class="lb" title="'+esc(x.l)+'">'+esc(x.l)+'</span><div class="tk"><div class="sg" style="width:'+x.a/mx*100+'%;background:var(--pro)"></div><div class="sg" style="width:'+x.b/mx*100+'%;background:var(--det)"></div></div><span class="vl">'+x.a+'/'+(x.a+x.b)+'</span></div>').join(''):'<p class="mu">Sin datos.</p>'}
+ function rateBy(rows,key){const m={};rows.forEach(r=>{const k=String(r[key]||'Sin dato').trim()||'Sin dato';(m[k]||(m[k]=[])).push(r)});return Object.keys(m).map(k=>({l:k,m:metric(m[k])})).filter(x=>x.m.opp>0)}
+ function charts(rows,m){
+  const meta=metaV(),pc=x=>({l:x.l,v:x.m.rate,t:x.m.rate.toFixed(1)+'% ('+x.m.sentOpp+'/'+x.m.opp+')'});
+  bars('chFun',[{l:'Casos',v:100,t:String(m.cases)},{l:'Oportunidades',v:m.cases?m.opp/m.cases*100:0,t:m.opp+' ('+m.oppRate.toFixed(0)+'%)'},{l:'Con link',v:m.cases?m.sentOpp/m.cases*100:0,t:String(m.sentOpp)}],null);
+  bars('chAg',rateBy(rows,'Case Owner').sort((a,b)=>b.m.rate-a.m.rate).map(pc),meta);
+  bars('chPf',rateBy(rows,'Sistema').sort((a,b)=>b.m.rate-a.m.rate).map(pc),meta);
+  bars('chPa',rateBy(rows,'País').sort((a,b)=>b.m.rate-a.m.rate).map(pc),meta);
+  stack('chMk',rateBy(rows,'Marca').sort((a,b)=>b.m.opp-a.m.opp).map(x=>({l:x.l,a:x.m.sentOpp,b:x.m.pending})));
+  let dy=rateBy(rows,'Data');if(dy.every(x=>!isNaN(Date.parse(x.l))))dy.sort((a,b)=>Date.parse(a.l)-Date.parse(b.l));bars('chDy',dy.map(pc),meta);
+ }
+ /* ===== resumen gerencial por agente ===== */
+ let GD=[],lastAuto='';
+ const GDEF={'NPS':'Reforzar el cierre con resumen de lo resuelto y seguimiento proactivo en casos con riesgo de detractor.','CSAT':'Responder dentro del SLA con empatía y confirmar la resolución antes de cerrar.','Acuracidad Sprinklr':'Revisar los casos con error en Sprinklr y dar retroalimentación semanal.','Acuracidad GCCP':'Revisar los casos con error en GCCP y dar retroalimentación semanal.','Acuracidad EA':'Verificar el registro correcto de eventos adversos (EA) antes de cerrar.','Acuracidad PQC':'Verificar el registro correcto de reclamos de calidad (PQC) antes de cerrar.','LEADS':'Enviar el link de compra en toda oportunidad detectada y revisar a diario las pendientes.'};
+ const sm=(a,b)=>{const N=window.__npsAgent;return N&&N.same?N.same(a,b):norm(a)===norm(b)};
+ function gNames(){const o=[],add=n=>{n=String(n||'').replace(/\u00a0/g,' ').trim();if(n&&n!=='Sin especialista'&&!o.some(x=>sm(x,n)))o.push(n)};try{const N=window.__npsAgent;if(N&&N.has&&N.has())N.names().forEach(add)}catch(e){}try{const A=window.__ac;if(A&&A.rows)A.rows().forEach(c=>add(c.esp))}catch(e){}leads.forEach(r=>add(r['Case Owner']));return o.sort((a,b)=>a.localeCompare(b))}
+ function agentData(n){const N=window.__npsAgent,X=window.__x,A=window.__ac,out=[];let r=null;
+  try{if(N&&N.has&&N.has()){if(n){const st=N.stats(n);r=st&&st.r}else r=X.calc(X.allCurrent())}}catch(e){}
+  out.push({v:r&&r.nps!=null?r.nps:null,d:r?r.nt+' respuestas':''});out.push({v:r&&r.csat!=null?r.csat:null,d:r?r.ct+' respuestas':''});
+  let I=null;try{if(A&&A.rows){const rw=A.rows();I=A.ind(n?rw.filter(c=>sm(c.esp,n)):rw)}}catch(e){}
+  ['soc','gccp','ae','pqc'].forEach(k=>{const x=I&&I[k];out.push({v:x&&x.v!=null?x.v:null,d:x&&x.n?(x.n-x.e)+' de '+x.n+' sin error':''})});
+  const m=metric(n?leads.filter(r=>sm(r['Case Owner'],n)):leads);out.push({v:leads.length&&m.opp?m.rate:null,d:leads.length?m.sentOpp+' de '+m.opp+' oportunidades con link · '+m.pending+' pendientes':''});return out}
+ function gerRows(){return [...document.querySelectorAll('#gmTable tbody tr')].map((tr,i)=>{const s=tr.querySelector('.gmVal').value,g=Number(tr.querySelector('.gmGoal').value),v=s===''?null:Number(s);return{i,name:tr.cells[0].textContent,v,g,gap:v==null?null:Math.round((g-v)*10)/10,d:(GD[i]||{}).d||''}})}
+ function gerEval(){const R=gerRows(),off=R.filter(x=>x.v!=null&&x.v<x.g).sort((a,b)=>b.gap-a.gap),pr={};off.forEach((x,k)=>pr[x.i]=k+1);
+  $('gmEval').innerHTML='<tr><th>Indicador</th><th>Resultado</th><th>Meta</th><th>Brecha</th><th>¿Aplica a plan / seguimiento?</th><th>Detalle</th></tr>'+R.map(x=>'<tr><td>'+esc(x.name)+'</td><td>'+(x.v==null?'–':x.v+'%')+'</td><td>'+x.g+'%</td><td>'+(x.gap==null?'–':x.gap>0?x.gap+' pp':'+'+(-x.gap)+' pp')+'</td><td>'+(x.v==null?'<span class="mu">Sin datos: carga la base en su pestaña</span>':x.v<x.g?'<b style="color:var(--det)">Sí · prioridad '+pr[x.i]+'</b>':'<span style="color:var(--pro)">No · cumple (seguimiento)</span>')+'</td><td>'+esc(x.d)+'</td></tr>').join('');
+  const c=R.filter(x=>x.v!=null);$('gmChart').innerHTML='';const box=$('gmChart');box.innerHTML=c.length?c.map(x=>{const v=Math.max(0,Math.min(100,x.v));return '<div class="bc"><span class="lb">'+esc(x.name)+'</span><div class="tk"><div class="fl" style="width:'+v+'%;background:'+(x.v>=x.g?'var(--pro)':'var(--det)')+'"></div><i class="mt" style="left:'+Math.min(100,x.g)+'%"></i></div><span class="vl">'+x.v+'%</span></div>'}).join('')+'<p class="lg">La línea negra marca la meta.</p>':'<p class="mu">Elige un especialista o registra resultados para ver el gráfico.</p>'}
+ function gerMetrics(){gerMetrics0();gerEval()}
+ function gerLoad(){const n=$('gmAgent').value;GD=agentData(n);document.querySelectorAll('.gmVal').forEach((el,i)=>{el.value=GD[i]&&GD[i].v!=null?(Math.round(GD[i].v*10)/10):''});gerMetrics();
+  const R=gerRows(),w=R.filter(x=>x.v!=null),off=w.filter(x=>x.v<x.g).sort((a,b)=>b.gap-a.gap),ok=w.filter(x=>x.v>=x.g),A=$('gmAgreements');
+  const txt=w.length?'Resultados de '+(n||'todo el equipo')+': cumple '+ok.length+' de '+w.length+' indicadores con datos.\nFortalezas: '+(ok.length?ok.map(x=>x.name+' ('+x.v+'%)').join(', '):'ninguna por ahora')+'.\nBrechas prioritarias: '+(off.length?off.map(x=>x.name+' ('+x.v+'% vs '+x.g+'%, brecha '+x.gap+' pp)').join('; '):'ninguna')+'.\nIndicadores sin datos: '+(R.filter(x=>x.v==null).map(x=>x.name).join(', ')||'ninguno')+'.':'';
+  if(!A.value||A.value===lastAuto){A.value=txt;lastAuto=txt}}
+ function gerRefresh(){const c=$('gmAgent').value,N=gNames();$('gmAgent').innerHTML='<option value="">Todo el equipo</option>'+N.map(x=>'<option value="'+esc(x)+'">'+esc(x)+'</option>').join('');$('gmAgent').value=N.includes(c)?c:'';gerLoad()}
+ $('gmAgent').addEventListener('change',gerLoad);$('gmLoad').addEventListener('click',gerRefresh);$('tGer').addEventListener('click',gerRefresh);
+ $('gmPlanAg').addEventListener('click',()=>{const n=$('gmAgent').value,R=gerRows(),off=R.filter(x=>x.v!=null&&x.v<x.g).sort((a,b)=>b.gap-a.gap),dt=new Date(Date.now()+30*86400000).toISOString().slice(0,10);$('gmSmart').innerHTML='';
+  if(!off.length){addAction({focus:'Seguimiento',action:'Mantener los resultados actuales y reconocer las buenas prácticas del agente.',measure:'Revisión mensual de los indicadores con datos.',owner:n||'Líder / responsable designado',date:dt});return}
+  off.forEach(x=>addAction({focus:x.name,action:GDEF[x.name]||'Definir acción específica.',measure:'Pasar de '+x.v+'% a ≥ '+x.g+'% (brecha '+x.gap+' pp); seguimiento semanal.',owner:n||'Líder / responsable designado',date:dt}))});
+
  document.querySelectorAll('.gmVal,.gmGoal').forEach(e=>e.addEventListener('input',gerMetrics));
  function addAction(a={}){let d=document.createElement('div');d.className='gm-action';d.innerHTML='<div class="row"><div><label>Indicador / foco</label><input data-k="focus" value="'+esc(a.focus||'')+'" placeholder="Ej. LEADS"></div><div><label>Acción específica</label><input data-k="action" value="'+esc(a.action||'')+'" placeholder="Qué se hará"></div><div><label>Medición / evidencia</label><input data-k="measure" value="'+esc(a.measure||'')+'" placeholder="Cómo se medirá"></div><div><label>Responsable</label><input data-k="owner" value="'+esc(a.owner||'')+'" placeholder="Responsable"></div><div><label>Fecha límite</label><input data-k="date" type="date" value="'+esc(a.date||'')+'"></div></div><button type="button" class="gmDel">Eliminar acción</button>';d.querySelector('.gmDel').onclick=()=>d.remove();$('gmSmart').appendChild(d)}
  $('gmAdd').onclick=()=>addAction();
  $('gmSuggest').onclick=()=>{if(!$('gmSmart').children.length){addAction({focus:'LEADS',action:'Revisar semanalmente oportunidades sin enlace y realizar coaching focalizado.',measure:'Elevar conversión de oportunidades con link enviado hasta la meta acordada; seguimiento semanal.',owner:'Líder / responsable designado',date:new Date(Date.now()+30*86400000).toISOString().slice(0,10)});addAction({focus:'Calidad',action:'Revisar los indicadores bajo meta y acordar calibraciones con los responsables.',measure:'Evidencia de calibración y mejora del resultado frente a la línea base.',owner:'Líder de calidad',date:new Date(Date.now()+30*86400000).toISOString().slice(0,10)})}};
- function collect(){let indicators=[...document.querySelectorAll('#gmTable tbody tr')].map((tr,i)=>({name:tr.cells[0].textContent,value:tr.querySelector('.gmVal').value,goal:tr.querySelector('.gmGoal').value,status:$('gmStatus'+i).textContent}));let actions=[...document.querySelectorAll('.gm-action')].map(d=>Object.fromEntries([...d.querySelectorAll('[data-k]')].map(e=>[e.dataset.k,e.value])));return {period:$('gmPeriod').value,leader:$('gmLeader').value,indicators,agreements:$('gmAgreements').value,actions}}
- function actaText(){let d=collect();return 'ACTA GERENCIAL\nPeriodo: '+d.period+'\nLíder: '+d.leader+'\n\nINDICADORES\n'+d.indicators.map(x=>x.name+': '+(x.value||'Sin datos')+'% | Meta '+x.goal+'% | '+x.status).join('\n')+'\n\nCONCLUSIONES Y ACUERDOS\n'+d.agreements+'\n\nPLAN SMART\n'+d.actions.map((a,i)=>(i+1)+'. '+a.focus+' — '+a.action+' | Medición: '+a.measure+' | Responsable: '+a.owner+' | Fecha: '+a.date).join('\n')}
+ function collect(){let indicators=[...document.querySelectorAll('#gmTable tbody tr')].map((tr,i)=>({name:tr.cells[0].textContent,value:tr.querySelector('.gmVal').value,goal:tr.querySelector('.gmGoal').value,status:$('gmStatus'+i).textContent}));let actions=[...document.querySelectorAll('.gm-action')].map(d=>Object.fromEntries([...d.querySelectorAll('[data-k]')].map(e=>[e.dataset.k,e.value])));return {agent:$('gmAgent').value,period:$('gmPeriod').value,leader:$('gmLeader').value,indicators,agreements:$('gmAgreements').value,actions}}
+ function actaText(){let d=collect();return 'ACTA GERENCIAL\nEspecialista: '+(d.agent||'Todo el equipo')+'\nPeriodo: '+d.period+'\nLíder: '+d.leader+'\n\nINDICADORES\n'+d.indicators.map(x=>x.name+': '+(x.value||'Sin datos')+'% | Meta '+x.goal+'% | '+x.status).join('\n')+'\n\nAPLICA A PLAN DE ACCIÓN / SEGUIMIENTO\n'+gerRows().map(x=>x.name+': '+(x.v==null?'sin datos':x.v<x.g?'SÍ (brecha '+x.gap+' pp)':'No, cumple')).join('\n')+'\n\nCONCLUSIONES Y ACUERDOS\n'+d.agreements+'\n\nPLAN SMART\n'+d.actions.map((a,i)=>(i+1)+'. '+a.focus+' — '+a.action+' | Medición: '+a.measure+' | Responsable: '+a.owner+' | Fecha: '+a.date).join('\n')}
  $('gmWord').onclick=()=>{let t=actaText().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\n/g,'<br>');let blob=new Blob(['<html><meta charset="utf-8"><body style="font-family:Arial">'+t+'</body></html>'],{type:'application/msword'}),u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download='Acta-gerencial.doc';a.click();URL.revokeObjectURL(u)};
  $('gmPrint').onclick=()=>{let w=window.open('','_blank');if(!w){$('gmMsg').textContent='Permite las ventanas emergentes para imprimir.';return}w.document.write('<html><meta charset="utf-8"><title>Acta gerencial</title><body style="font-family:Arial;white-space:pre-wrap;padding:28px">'+esc(actaText())+'</body></html>');w.document.close();w.print()};
  $('gmCopy').onclick=()=>navigator.clipboard.writeText(actaText()).then(()=>$('gmMsg').textContent='Acta copiada.').catch(()=>$('gmMsg').textContent='No se pudo copiar; usa Descargar Word.');
  gerMetrics();addAction();
 })();
 </script>
-</div>
 <script>
 var $=function(i){return document.getElementById(i)};
 var IDS=['nombre','p','pa','d','c1','c2','c3','c4','c5','c6','c7','metaN','metaC'];
@@ -2113,7 +2196,7 @@ $('acActaAll').addEventListener('click',function(){
   var html=names.map(function(n,i){return'<div'+(i?' style="page-break-before:always"':'')+'>'+actaHtml(actaData(n,$('acActaFb').checked))+'</div>'}).join('');
   dlFile('Actas-Acuracidad-'+stamp()+'.doc',html);actaMsg('Descargadas '+names.length+' actas (especialistas con errores o con NPS/CSAT bajo la meta), una por página.');
 });
-window.__ac={parseBase:parseBase,ind:ind,load:function(r){ROWS=[];addRows(r);refreshEsp();render()},rc:rcData,refreshActa:function(){refreshActaEsp();renderActa()},smartDraft:smartDraft,actaData:actaData,actaHtml:actaHtml};
+window.__ac={parseBase:parseBase,ind:ind,rows:function(){return ROWS},load:function(r){ROWS=[];addRows(r);refreshEsp();render()},rc:rcData,refreshActa:function(){refreshActaEsp();renderActa()},smartDraft:smartDraft,actaData:actaData,actaHtml:actaHtml};
 })();
 </script>
 </body>
