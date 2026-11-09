@@ -138,6 +138,8 @@ tr.mu td{color:var(--mu)}
   <button type="button" role="tab" id="tM" aria-selected="false">Matriz de calidad</button>
   <button type="button" role="tab" id="tB" aria-selected="false">Calculadora NPS y CSAT</button>
   <button type="button" role="tab" id="tAc" aria-selected="false">Acuracidad</button>
+  <button type="button" role="tab" id="tLeads" aria-selected="false">LEADS</button>
+  <button type="button" role="tab" id="tGer" aria-selected="false">Resumen gerencial</button>
 </nav>
 <div id="vAn">
   <header>
@@ -362,6 +364,89 @@ tr.mu td{color:var(--mu)}
     </ul>
   </div>
 </div>
+
+<div id="vLeads" hidden>
+  <header><div><h1>LEADS — oportunidades comerciales</h1><p>Carga la base de oportunidades y analiza resultados por agente, marca, sistema, país y tipo. El archivo se procesa localmente en el navegador.</p></div></header>
+  <div class="card">
+    <h2>Cargar base LEADS</h2><p class="sub">Columnas esperadas: Data, Caso, Sales Chances, Link Sent, Complaints, País, Sistema, Marca, Tipo, Subject, Canal, Group y Case Owner.</p>
+    <input id="ldFile" type="file" accept=".xlsx,.xls,.csv">
+    <p class="mu" id="ldMsg" role="status">Esperando archivo Excel o CSV.</p>
+  </div>
+  <div id="ldResults" hidden>
+    <div class="stats" id="ldStats"></div>
+    <div class="card"><h2>Filtros</h2><div class="row" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">
+      <div><label for="ldAgent">Agente</label><select id="ldAgent"><option value="">Todos</option></select></div>
+      <div><label for="ldBrand">Marca</label><select id="ldBrand"><option value="">Todas</option></select></div>
+      <div><label for="ldSystem">Sistema / plataforma</label><select id="ldSystem"><option value="">Todos</option></select></div>
+      <div><label for="ldCountry">País</label><select id="ldCountry"><option value="">Todos</option></select></div>
+    </div><div class="btns"><button type="button" id="ldExport">Exportar análisis a Excel</button><button type="button" id="ldClear">Limpiar base cargada</button></div></div>
+    <div class="card"><h2>Resumen por agente</h2><div class="tw"><table id="ldByAgent"></table></div></div>
+    <div class="card"><h2>Resumen por marca</h2><div class="tw"><table id="ldByBrand"></table></div></div>
+    <div class="card"><h2>Resumen por sistema</h2><div class="tw"><table id="ldBySystem"></table></div></div>
+    <div class="card"><h2>Resumen por país</h2><div class="tw"><table id="ldByCountry"></table></div></div>
+    <div class="card"><h2>Resumen por tipo</h2><div class="tw"><table id="ldByType"></table></div></div>
+    <div class="card"><h2>Detalle por caso</h2><div class="tw"><table id="ldDetail"></table></div></div>
+  </div>
+</div>
+<div id="vGer" hidden>
+ <header><div><h1>Resumen gerencial</h1><p>Consolidado de indicadores, cumplimiento de metas, acuerdos y plan de acción SMART.</p></div></header>
+ <div class="card"><h2>Periodo y responsable</h2><div class="row row2">
+  <div><label for="gmPeriod">Periodo evaluado</label><input id="gmPeriod" placeholder="Ej. Octubre 2026"></div>
+  <div><label for="gmLeader">Líder responsable</label><input id="gmLeader" placeholder="Nombre del líder"></div>
+ </div></div>
+ <div class="card"><h2>Indicadores de gestión</h2><p class="sub">Registra el resultado y la meta oficial de cada indicador. Las metas iniciales son editables; confirma las metas vigentes de tu operación.</p>
+  <div class="tw"><table id="gmTable"><thead><tr><th>Indicador</th><th>Resultado (%)</th><th>Meta (%)</th><th>Estado</th></tr></thead><tbody>
+  <tr><td>NPS</td><td><input class="gmVal" data-i="0" type="number" step="0.1" placeholder="–"></td><td><input class="gmGoal" data-i="0" type="number" step="0.1" value="50"></td><td id="gmStatus0">Sin datos</td></tr><tr><td>CSAT</td><td><input class="gmVal" data-i="1" type="number" step="0.1" placeholder="–"></td><td><input class="gmGoal" data-i="1" type="number" step="0.1" value="85"></td><td id="gmStatus1">Sin datos</td></tr><tr><td>Acuracidad Sprinklr</td><td><input class="gmVal" data-i="2" type="number" step="0.1" placeholder="–"></td><td><input class="gmGoal" data-i="2" type="number" step="0.1" value="98"></td><td id="gmStatus2">Sin datos</td></tr><tr><td>Acuracidad GCCP</td><td><input class="gmVal" data-i="3" type="number" step="0.1" placeholder="–"></td><td><input class="gmGoal" data-i="3" type="number" step="0.1" value="98"></td><td id="gmStatus3">Sin datos</td></tr><tr><td>Acuracidad EA</td><td><input class="gmVal" data-i="4" type="number" step="0.1" placeholder="–"></td><td><input class="gmGoal" data-i="4" type="number" step="0.1" value="95"></td><td id="gmStatus4">Sin datos</td></tr><tr><td>Acuracidad PQC</td><td><input class="gmVal" data-i="5" type="number" step="0.1" placeholder="–"></td><td><input class="gmGoal" data-i="5" type="number" step="0.1" value="97"></td><td id="gmStatus5">Sin datos</td></tr><tr><td>LEADS</td><td><input class="gmVal" data-i="6" type="number" step="0.1" placeholder="–"></td><td><input class="gmGoal" data-i="6" type="number" step="0.1" value="80"></td><td id="gmStatus6">Sin datos</td></tr>
+  </tbody></table></div><p class="mu">LEADS inicia con una referencia editable de 80%; no representa una meta oficial confirmada.</p>
+ </div>
+ <div class="card"><h2>Conclusiones y acuerdos gerenciales</h2><textarea id="gmAgreements" rows="5" placeholder="Fortalezas, brechas, causas, acuerdos y compromisos definidos en la reunión..."></textarea></div>
+ <div class="card"><h2>Plan de acción SMART</h2><p class="sub">Define acciones específicas, medibles, alcanzables, relevantes y con fecha límite.</p>
+  <div id="gmSmart"></div><div class="btns"><button type="button" id="gmAdd">+ Agregar acción</button><button type="button" id="gmSuggest">Cargar borrador sugerido</button></div>
+ </div>
+ <div class="card"><h2>Acta gerencial</h2><div class="btns"><button type="button" id="gmWord">Descargar Word</button><button type="button" id="gmPrint">Imprimir / Guardar PDF</button><button type="button" id="gmCopy">Copiar acta</button></div><p class="mu" id="gmMsg" role="status"></p></div>
+</div>
+<style>
+#vLeads .stats,#vGer .stats{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+#vLeads table,#vGer table{width:100%;border-collapse:collapse;font-size:13px}
+#vLeads th,#vLeads td,#vGer th,#vGer td{padding:9px;border-bottom:1px solid var(--ln);text-align:left;vertical-align:top}
+#vLeads input,#vGer input,#vGer textarea,#vGer select{max-width:100%}
+.gm-action{border:1px solid var(--ln);border-radius:12px;padding:12px;margin:10px 0;background:var(--sf)}
+.gm-action .row{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+</style>
+<script>
+(function(){
+ const $=id=>document.getElementById(id), esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ let leads=[],smart=[];
+ const cols=['Data','Caso','Sales Chances','Link Sent','Complaints','País','Sistema','Marca','Tipo','Subject','Canal','Group','Case Owner'];
+ const norm=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
+ const yes=x=>['1','1.0','si','sí','yes','true','y'].includes(String(x==null?'':x).trim().toLowerCase());
+ function metric(rows){let opp=rows.filter(r=>yes(r['Sales Chances'])),sentOpp=opp.filter(r=>yes(r['Link Sent'])),links=rows.filter(r=>yes(r['Link Sent']));return {cases:rows.length,opp:opp.length,sentOpp:sentOpp.length,rate:opp.length?sentOpp.length/opp.length*100:0,links:links.length,complaints:rows.filter(r=>yes(r.Complaints)).length}}
+ function table(id,rows,headers){$(id).innerHTML='<thead><tr>'+headers.map(x=>'<th>'+esc(x)+'</th>').join('')+'</tr></thead><tbody>'+rows.map(r=>'<tr>'+r.map(x=>'<td>'+x+'</td>').join('')+'</tr>').join('')+'</tbody>'}
+ function group(rows,key){let m={};rows.forEach(r=>{let k=String(r[key]||'Sin dato');(m[k]||(m[k]=[])).push(r)});return Object.keys(m).sort((a,b)=>a.localeCompare(b)).map(k=>{let z=metric(m[k]);return [esc(k),z.cases,z.opp,z.sentOpp,z.rate.toFixed(1)+'%',z.links,z.complaints]})}
+ function options(id,key,all){let v=$(id).value,vals=[...new Set(all.map(r=>String(r[key]||'')).filter(Boolean))].sort();$(id).innerHTML='<option value="">Todos</option>'+vals.map(x=>'<option>'+esc(x)+'</option>').join('');$(id).value=vals.includes(v)?v:''}
+ function filtered(){return leads.filter(r=>(!$('ldAgent').value||String(r['Case Owner']||'')===$('ldAgent').value)&&(! $('ldBrand').value||String(r.Marca||'')===$('ldBrand').value)&&(! $('ldSystem').value||String(r.Sistema||'')===$('ldSystem').value)&&(! $('ldCountry').value||String(r.País||'')===$('ldCountry').value))}
+ function render(){let rows=filtered(),m=metric(rows);$('ldStats').innerHTML=[['Total casos',m.cases],['Oportunidades',m.opp],['Oportunidades con link',m.sentOpp],['% leads enviados',m.rate.toFixed(1)+'%'],['Total links enviados',m.links],['Complaints',m.complaints]].map(x=>'<div class="kpi"><b>'+x[1]+'</b><span>'+x[0]+'</span></div>').join('');
+  let h=['Grupo','Casos','Oportunidades','Oportunidades con link','Conversión','Links enviados','Complaints'];
+  table('ldByAgent',group(rows,'Case Owner'),h);table('ldByBrand',group(rows,'Marca'),h);table('ldBySystem',group(rows,'Sistema'),h);table('ldByCountry',group(rows,'País'),h);table('ldByType',group(rows,'Tipo'),h);
+  table('ldDetail',rows.slice(0,1500).map(r=>cols.map(c=>esc(r[c]||''))),cols);
+ }
+ $('ldFile').addEventListener('change',async e=>{let f=e.target.files[0];if(!f)return;try{let data=await f.arrayBuffer(),wb=XLSX.read(data,{type:'array',cellDates:true}),ws=wb.Sheets[wb.SheetNames[0]],raw=XLSX.utils.sheet_to_json(ws,{defval:'',raw:false});if(!raw.length)throw Error('El archivo no contiene filas.');let map={};Object.keys(raw[0]).forEach(k=>map[norm(k)]=k);let missing=cols.filter(c=>!map[norm(c)]);if(missing.length)throw Error('Faltan columnas: '+missing.join(', '));leads=raw.map(r=>{let o={};cols.forEach(c=>o[c]=r[map[norm(c)]]);return o});['ldAgent','ldBrand','ldSystem','ldCountry'].forEach((id,i)=>options(id,['Case Owner','Marca','Sistema','País'][i],leads));$('ldResults').hidden=false;$('ldMsg').textContent='Archivo cargado: '+f.name+' · '+leads.length+' registros.';render()}catch(err){$('ldMsg').textContent='No se pudo leer la base: '+err.message}});
+ ['ldAgent','ldBrand','ldSystem','ldCountry'].forEach(id=>$(id).addEventListener('change',render));
+ $('ldClear').addEventListener('click',()=>{leads=[];$('ldResults').hidden=true;$('ldFile').value='';$('ldMsg').textContent='Base retirada del análisis.'});
+ $('ldExport').addEventListener('click',()=>{let rows=filtered(),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),'Detalle filtrado');[['Por agente','Case Owner'],['Por marca','Marca'],['Por sistema','Sistema'],['Por país','País'],['Por tipo','Tipo']].forEach(([name,key])=>{let data=[['Grupo','Casos','Oportunidades','Oportunidades con link','Conversión %','Links enviados','Complaints'],...group(rows,key).map(r=>r.map(x=>String(x).replace(/<[^>]*>/g,'')))];XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(data),name)});XLSX.writeFile(wb,'LEADS-analisis.xlsx')});
+ function gerMetrics(){document.querySelectorAll('.gmVal').forEach((el,i)=>{let v=el.value,g=Number(document.querySelector('.gmGoal[data-i="'+i+'"]').value),st=$('gmStatus'+i);st.textContent=v===''?'Sin datos':Number(v)>=g?'Cumple':'No cumple';st.style.color=v===''?'var(--mu)':Number(v)>=g?'var(--pro)':'var(--det)'})}
+ document.querySelectorAll('.gmVal,.gmGoal').forEach(e=>e.addEventListener('input',gerMetrics));
+ function addAction(a={}){let d=document.createElement('div');d.className='gm-action';d.innerHTML='<div class="row"><div><label>Indicador / foco</label><input data-k="focus" value="'+esc(a.focus||'')+'" placeholder="Ej. LEADS"></div><div><label>Acción específica</label><input data-k="action" value="'+esc(a.action||'')+'" placeholder="Qué se hará"></div><div><label>Medición / evidencia</label><input data-k="measure" value="'+esc(a.measure||'')+'" placeholder="Cómo se medirá"></div><div><label>Responsable</label><input data-k="owner" value="'+esc(a.owner||'')+'" placeholder="Responsable"></div><div><label>Fecha límite</label><input data-k="date" type="date" value="'+esc(a.date||'')+'"></div></div><button type="button" class="gmDel">Eliminar acción</button>';d.querySelector('.gmDel').onclick=()=>d.remove();$('gmSmart').appendChild(d)}
+ $('gmAdd').onclick=()=>addAction();
+ $('gmSuggest').onclick=()=>{if(!$('gmSmart').children.length){addAction({focus:'LEADS',action:'Revisar semanalmente oportunidades sin enlace y realizar coaching focalizado.',measure:'Elevar conversión de oportunidades con link enviado hasta la meta acordada; seguimiento semanal.',owner:'Líder / responsable designado',date:new Date(Date.now()+30*86400000).toISOString().slice(0,10)});addAction({focus:'Calidad',action:'Revisar los indicadores bajo meta y acordar calibraciones con los responsables.',measure:'Evidencia de calibración y mejora del resultado frente a la línea base.',owner:'Líder de calidad',date:new Date(Date.now()+30*86400000).toISOString().slice(0,10)})}};
+ function collect(){let indicators=[...document.querySelectorAll('#gmTable tbody tr')].map((tr,i)=>({name:tr.cells[0].textContent,value:tr.querySelector('.gmVal').value,goal:tr.querySelector('.gmGoal').value,status:$('gmStatus'+i).textContent}));let actions=[...document.querySelectorAll('.gm-action')].map(d=>Object.fromEntries([...d.querySelectorAll('[data-k]')].map(e=>[e.dataset.k,e.value])));return {period:$('gmPeriod').value,leader:$('gmLeader').value,indicators,agreements:$('gmAgreements').value,actions}}
+ function actaText(){let d=collect();return 'ACTA GERENCIAL\nPeriodo: '+d.period+'\nLíder: '+d.leader+'\n\nINDICADORES\n'+d.indicators.map(x=>x.name+': '+(x.value||'Sin datos')+'% | Meta '+x.goal+'% | '+x.status).join('\n')+'\n\nCONCLUSIONES Y ACUERDOS\n'+d.agreements+'\n\nPLAN SMART\n'+d.actions.map((a,i)=>(i+1)+'. '+a.focus+' — '+a.action+' | Medición: '+a.measure+' | Responsable: '+a.owner+' | Fecha: '+a.date).join('\n')}
+ $('gmWord').onclick=()=>{let t=actaText().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\n/g,'<br>');let blob=new Blob(['<html><meta charset="utf-8"><body style="font-family:Arial">'+t+'</body></html>'],{type:'application/msword'}),u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download='Acta-gerencial.doc';a.click();URL.revokeObjectURL(u)};
+ $('gmPrint').onclick=()=>{let w=window.open('','_blank');if(!w){$('gmMsg').textContent='Permite las ventanas emergentes para imprimir.';return}w.document.write('<html><meta charset="utf-8"><title>Acta gerencial</title><body style="font-family:Arial;white-space:pre-wrap;padding:28px">'+esc(actaText())+'</body></html>');w.document.close();w.print()};
+ $('gmCopy').onclick=()=>navigator.clipboard.writeText(actaText()).then(()=>$('gmMsg').textContent='Acta copiada.').catch(()=>$('gmMsg').textContent='No se pudo copiar; usa Descargar Word.');
+ gerMetrics();addAction();
+})();
+</script>
 </div>
 <script>
 var $=function(i){return document.getElementById(i)};
@@ -743,8 +828,8 @@ var dz=$a('drop');
 ['dragleave','drop'].forEach(function(ev){dz.addEventListener(ev,function(e){e.preventDefault();dz.classList.remove('on')})});
 dz.addEventListener('drop',function(e){handle(e.dataTransfer.files[0])});
 $a('fAg').addEventListener('change',render);$a('fRi').addEventListener('change',render);$a('csv').addEventListener('click',csv);
-function tab(n){['vAn','vMx','vCalc','vAc'].forEach(function(id,i){$a(id).hidden=i!==n});['tA','tM','tB','tAc'].forEach(function(id,i){$a(id).setAttribute('aria-selected',i===n)})}
-$a('tA').addEventListener('click',function(){tab(0)});$a('tM').addEventListener('click',function(){tab(1)});$a('tB').addEventListener('click',function(){tab(2)});$a('tAc').addEventListener('click',function(){tab(3)});
+function tab(n){['vAn','vMx','vCalc','vAc','vLeads','vGer'].forEach(function(id,i){$a(id).hidden=i!==n});['tA','tM','tB','tAc','tLeads','tGer'].forEach(function(id,i){$a(id).setAttribute('aria-selected',i===n)})}
+$a('tA').addEventListener('click',function(){tab(0)});$a('tM').addEventListener('click',function(){tab(1)});$a('tB').addEventListener('click',function(){tab(2)});$a('tAc').addEventListener('click',function(){tab(3)});$a('tLeads').addEventListener('click',function(){tab(4)});$a('tGer').addEventListener('click',function(){tab(5)});
 function re(){if(LAST){try{D=analyze(LAST);render()}catch(e){}}}
 $a('pSla').addEventListener('change',re);$a('pMail').addEventListener('change',re);
 buildMx();
