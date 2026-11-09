@@ -370,9 +370,12 @@ tr.mu td{color:var(--mu)}
   <div class="card" id="ldUploadCard">
     <h2>Cargar base LEADS desde tu computador</h2>
     <p class="sub">Al abrir la página puedes seleccionar aquí el Excel o CSV que deseas analizar. El archivo se procesa localmente en tu navegador: no se sube a GitHub ni a ningún servidor.</p>
-    <label for="ldFile" class="ld-file-label">Seleccionar archivo Excel o CSV</label>
-    <input id="ldFile" type="file" accept=".xlsx,.xls,.csv" aria-label="Seleccionar base LEADS desde el computador">
-    <p class="mu" id="ldMsg" role="status" aria-live="polite">Todavía no has seleccionado una base LEADS.</p>
+    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:14px 0">
+      <button type="button" id="ldChoose" onclick="document.getElementById('ldFile').click()" style="background:var(--ac);color:#fff;border:0;padding:13px 22px;font-size:1rem;font-weight:800;border-radius:10px">📂 SUBIR BASE LEADS</button>
+      <span id="ldFileName" class="mu">Ningún archivo seleccionado</span>
+    </div>
+    <input id="ldFile" type="file" accept=".xlsx,.xls,.csv" aria-label="Seleccionar base LEADS desde el computador" style="display:block!important;visibility:visible!important;opacity:1!important;position:static!important;width:100%!important;height:auto!important;max-width:560px!important;margin:8px 0 12px!important;padding:12px!important;border:2px solid var(--ac)!important;border-radius:10px!important;background:var(--bg)!important">
+    <p class="mu" id="ldMsg" role="status" aria-live="polite">Selecciona tu archivo .xlsx, .xls o .csv para comenzar.</p>
     <p class="mu">Columnas esperadas: Data, Caso, Sales Chances, Link Sent, Complaints, País, Sistema, Marca, Tipo, Subject, Canal, Group y Case Owner.</p>
   </div>
   <div id="ldResults" hidden>
@@ -438,7 +441,7 @@ tr.mu td{color:var(--mu)}
   table('ldByAgent',group(rows,'Case Owner'),h);table('ldByBrand',group(rows,'Marca'),h);table('ldBySystem',group(rows,'Sistema'),h);table('ldByCountry',group(rows,'País'),h);table('ldByType',group(rows,'Tipo'),h);
   table('ldDetail',rows.slice(0,1500).map(r=>cols.map(c=>esc(r[c]||''))),cols);
  }
- $('ldFile').addEventListener('change',async e=>{let f=e.target.files[0];if(!f)return;try{let data=await f.arrayBuffer(),wb=XLSX.read(data,{type:'array',cellDates:true}),ws=wb.Sheets[wb.SheetNames[0]],raw=XLSX.utils.sheet_to_json(ws,{defval:'',raw:false});if(!raw.length)throw Error('El archivo no contiene filas.');let map={};Object.keys(raw[0]).forEach(k=>map[norm(k)]=k);let missing=cols.filter(c=>!map[norm(c)]);if(missing.length)throw Error('Faltan columnas: '+missing.join(', '));leads=raw.map(r=>{let o={};cols.forEach(c=>o[c]=r[map[norm(c)]]);return o});['ldAgent','ldBrand','ldSystem','ldCountry'].forEach((id,i)=>options(id,['Case Owner','Marca','Sistema','País'][i],leads));$('ldResults').hidden=false;$('ldMsg').textContent='Archivo cargado: '+f.name+' · '+leads.length+' registros.';render()}catch(err){$('ldMsg').textContent='No se pudo leer la base: '+err.message}});
+ $('ldFile').addEventListener('change',async e=>{let f=e.target.files[0];if(!f)return;$('ldFileName').textContent='Archivo: '+f.name;try{let data=await f.arrayBuffer(),wb=XLSX.read(data,{type:'array',cellDates:true}),ws=wb.Sheets[wb.SheetNames[0]],raw=XLSX.utils.sheet_to_json(ws,{defval:'',raw:false});if(!raw.length)throw Error('El archivo no contiene filas.');let map={};Object.keys(raw[0]).forEach(k=>map[norm(k)]=k);let missing=cols.filter(c=>!map[norm(c)]);if(missing.length)throw Error('Faltan columnas: '+missing.join(', '));leads=raw.map(r=>{let o={};cols.forEach(c=>o[c]=r[map[norm(c)]]);return o});['ldAgent','ldBrand','ldSystem','ldCountry'].forEach((id,i)=>options(id,['Case Owner','Marca','Sistema','País'][i],leads));$('ldResults').hidden=false;$('ldMsg').textContent='Archivo cargado: '+f.name+' · '+leads.length+' registros.';render()}catch(err){$('ldMsg').textContent='No se pudo leer la base: '+err.message}});
  ['ldAgent','ldBrand','ldSystem','ldCountry'].forEach(id=>$(id).addEventListener('change',render));
  $('ldClear').addEventListener('click',()=>{leads=[];$('ldResults').hidden=true;$('ldFile').value='';$('ldMsg').textContent='Base retirada del análisis.'});
  $('ldExport').addEventListener('click',()=>{let rows=filtered(),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),'Detalle filtrado');[['Por agente','Case Owner'],['Por marca','Marca'],['Por sistema','Sistema'],['Por país','País'],['Por tipo','Tipo']].forEach(([name,key])=>{let data=[['Grupo','Casos','Oportunidades','Oportunidades con link','Conversión %','Links enviados','Complaints'],...group(rows,key).map(r=>r.map(x=>String(x).replace(/<[^>]*>/g,'')))];XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(data),name)});XLSX.writeFile(wb,'LEADS-analisis.xlsx')});
