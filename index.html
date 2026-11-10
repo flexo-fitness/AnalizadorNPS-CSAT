@@ -140,6 +140,7 @@ tr.mu td{color:var(--mu)}
   <button type="button" role="tab" id="tAc" aria-selected="false">Acuracidad</button>
   <button type="button" role="tab" id="tLeads" aria-selected="true">LEADS</button>
   <button type="button" role="tab" id="tGer" aria-selected="false">Resumen gerencial</button>
+<button type="button" role="tab" id="tProd" aria-selected="false">Productividad</button>
 </nav>
 <div id="vAn" hidden>
   <header>
@@ -417,6 +418,34 @@ tr.mu td{color:var(--mu)}
     <li>La meta es editable y se aplica a todas las tablas y al acta.</li></ul></div>
 </div>
 </div>
+<div id="vProd" hidden>
+<header><div><h1>Productividad</h1><p>Carga el reporte del Tipificador y mira qué tipo de casos se gestionan, quién gestiona más y en qué se concentra el trabajo, por equipo (Social Media o Tradicional) y por persona.</p></div></header>
+<div class="card">
+  <h2>Cargar Tipificador de casos</h2>
+  <p class="sub">CSV con NumerodeCaso, TipoCaso, EstadoCaso, TipoGestion, Fecha, Hora y Usuario. Se procesa solo en tu navegador. El archivo no trae el equipo, así que se deduce del número de caso: <b>006…</b> = Tradicional (Salesforce) y número sin ceros = Social Media (Sprinklr).</p>
+  <div class="drop" style="margin:0"><input id="pdFile" type="file" accept=".csv,.txt" aria-label="Cargar CSV del Tipificador"><p class="mu" id="pdMsg" style="margin:8px 0 0" role="status">Esperando archivo.</p></div>
+  <div class="row" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin-top:14px">
+    <div><label for="pdTeam">Equipo</label><select id="pdTeam"><option value="">Todos</option><option>Social Media</option><option>Tradicional</option></select></div>
+    <div><label for="pdUser">Persona</label><select id="pdUser"><option value="">Todas</option></select></div>
+    <div><label for="pdTipo">Tipo de caso</label><select id="pdTipo"><option value="">Todos</option></select></div>
+  </div>
+</div>
+<div id="pdRes" hidden>
+  <div class="stats" id="pdStats" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))"></div>
+  <p class="mu" id="pdCov"></p>
+  <div class="card"><h2>Gráficos de productividad</h2><p class="sub">Cada gestión del Tipificador cuenta una vez. Responden a los filtros de equipo, persona y tipo de caso.</p><div class="cgrid">
+    <div><h3 class="st2">¿Quién hace más? Gestiones por persona</h3><div id="pdChUser"></div><p class="lg"><b style="color:#0f6b6b">■</b> Tradicional &nbsp; <b style="color:#d98a1f">■</b> Social Media &nbsp; <b style="color:#8a9aa0">■</b> Sin clasificar</p></div>
+    <div><h3 class="st2">¿Qué tipo de casos?</h3><div id="pdChTipo"></div></div>
+    <div><h3 class="st2">¿En qué hacemos más? Tipo de gestión</h3><div id="pdChGest"></div></div>
+    <div><h3 class="st2">Estado del caso</h3><div id="pdChEst"></div></div>
+    <div><h3 class="st2">Social Media vs Tradicional</h3><div id="pdChTeam"></div></div>
+    <div><h3 class="st2">Gestiones por día</h3><div id="pdChDay"></div></div>
+    <div><h3 class="st2">Gestiones por hora</h3><div id="pdChHour"></div></div></div></div>
+  <div class="card"><h2>Detalle por persona</h2><div class="tw"><table id="pdTUser"></table></div></div>
+  <div class="card"><h2>Detalle por equipo: tipo de gestión</h2><div class="tw"><table id="pdTGest"></table></div></div>
+  <div class="card"><h2>Detalle por equipo: tipo de caso</h2><div class="tw"><table id="pdTTipo"></table></div></div>
+</div>
+</div>
 <div id="vGer" hidden>
  <header><div><h1>Resumen gerencial</h1><p>Consolidado de indicadores, cumplimiento de metas, acuerdos y plan de acción SMART.</p></div></header>
  <div class="card"><h2>Resultados por agente</h2><p class="sub">Elige un especialista para traer sus resultados de NPS, CSAT, Acuracidad y Leads desde las demás pestañas (carga primero las bases). “Todo el equipo” usa el consolidado.</p><div class="row row2"><div><label for="gmAgent">Especialista</label><select id="gmAgent"><option value="">Todo el equipo</option></select></div><div style="align-self:end"><button type="button" id="gmLoad">Actualizar datos</button></div></div></div>
@@ -452,7 +481,7 @@ tr.mu td{color:var(--mu)}
 #vLeads input,#vGer input,#vGer textarea,#vGer select{max-width:100%}
 .gm-action{border:1px solid var(--ln);border-radius:12px;padding:12px;margin:10px 0;background:var(--sf)}
 .gm-action .row{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
-#vLeads .cgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:18px}
+#vLeads .cgrid,#vProd .cgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:18px}
 .bc{display:grid;grid-template-columns:minmax(100px,24%) 1fr 74px;gap:8px;align-items:center;margin:7px 0;font-size:13px}
 .bc .tk{position:relative;height:18px;background:var(--sh);border-radius:99px;display:flex}
 .bc .fl{height:100%;border-radius:99px}.bc .sg{height:100%}.bc .sg:first-child{border-radius:99px 0 0 99px}
@@ -1062,8 +1091,8 @@ var dz=$a('drop');
 ['dragleave','drop'].forEach(function(ev){dz.addEventListener(ev,function(e){e.preventDefault();dz.classList.remove('on')})});
 dz.addEventListener('drop',function(e){handle(e.dataTransfer.files[0])});
 $a('fAg').addEventListener('change',render);$a('fRi').addEventListener('change',render);$a('csv').addEventListener('click',csv);
-function tab(n){['vAn','vMx','vCalc','vAc','vLeads','vGer'].forEach(function(id,i){$a(id).hidden=i!==n});['tA','tM','tB','tAc','tLeads','tGer'].forEach(function(id,i){$a(id).setAttribute('aria-selected',i===n)})}
-$a('tA').addEventListener('click',function(){tab(0)});$a('tM').addEventListener('click',function(){tab(1)});$a('tB').addEventListener('click',function(){tab(2)});$a('tAc').addEventListener('click',function(){tab(3)});$a('tLeads').addEventListener('click',function(){tab(4)});$a('tGer').addEventListener('click',function(){tab(5)});
+function tab(n){['vAn','vMx','vCalc','vAc','vLeads','vGer','vProd'].forEach(function(id,i){$a(id).hidden=i!==n});['tA','tM','tB','tAc','tLeads','tGer','tProd'].forEach(function(id,i){$a(id).setAttribute('aria-selected',i===n)})}
+$a('tA').addEventListener('click',function(){tab(0)});$a('tM').addEventListener('click',function(){tab(1)});$a('tB').addEventListener('click',function(){tab(2)});$a('tAc').addEventListener('click',function(){tab(3)});$a('tLeads').addEventListener('click',function(){tab(4)});$a('tGer').addEventListener('click',function(){tab(5)});$a('tProd').addEventListener('click',function(){tab(6)});
 // Mostrar LEADS al entrar por primera vez para que el cargador quede a la vista.
 tab(4);
 function re(){if(LAST){try{D=analyze(LAST);render()}catch(e){}}}
@@ -2233,6 +2262,49 @@ $('acActaAll').addEventListener('click',function(){
   dlFile('Actas-Acuracidad-'+stamp()+'.doc',html);actaMsg('Descargadas '+names.length+' actas (especialistas con errores o con NPS/CSAT bajo la meta), una por página.');
 });
 window.__ac={parseBase:parseBase,ind:ind,rows:function(){return ROWS},load:function(r){ROWS=[];addRows(r);refreshEsp();render()},rc:rcData,refreshActa:function(){refreshActaEsp();renderActa()},smartDraft:smartDraft,actaData:actaData,actaHtml:actaHtml};
+})();
+</script>
+<script>
+(function(){
+const $=i=>document.getElementById(i),esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const COL={'Tradicional':'#0f6b6b','Social Media':'#d98a1f','Sin clasificar':'#8a9aa0'},TM=['Tradicional','Social Media','Sin clasificar'];
+let D=[];
+const nz=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/gi,'').toLowerCase();
+function parseCsv(s,d){const o=[];let r=[],f='',q=false;for(let i=0;i<s.length;i++){const c=s[i];if(q){if(c==='"'){if(s[i+1]==='"'){f+='"';i++}else q=false}else f+=c}else if(c==='"')q=true;else if(c===d){r.push(f);f=''}else if(c==='\n'){r.push(f);o.push(r);r=[];f=''}else if(c!=='\r')f+=c}if(f!==''||r.length){r.push(f);o.push(r)}return o}
+function load(buf){
+ let s=new TextDecoder('utf-8').decode(buf);if(s.includes('\ufffd'))s=new TextDecoder('windows-1252').decode(buf);s=s.replace(/^\ufeff/,'');
+ const l0=s.split('\n')[0],d=[',',';','\t'].sort((a,b)=>l0.split(b).length-l0.split(a).length)[0],m=parseCsv(s,d),h=m[0].map(nz),ix=n=>h.indexOf(n);
+ const C={id:ix('numerodecaso'),tipo:ix('tipocaso'),est:ix('estadocaso'),g:ix('tipogestion'),f:ix('fecha'),hr:ix('hora'),u:ix('usuario')};
+ if(C.u<0||C.tipo<0||C.g<0)throw new Error('No encontré las columnas Usuario, TipoCaso y TipoGestion. Verifica que sea el reporte del Tipificador.');
+ const cl=v=>String(v==null?'':v).replace(/\u00a0/g,' ').replace(/\s+/g,' ').trim(),out=[],un={};
+ for(let i=1;i<m.length;i++){const r=m[i],u=cl(r[C.u]);if(!u)continue;
+  const raw=cl(r[C.id]).replace(/^#\s*/,''),id=/^\d+$/.test(raw)?raw:'',team=!id?'Sin clasificar':id.startsWith('00')?'Tradicional':'Social Media',k=u.toLowerCase();
+  un[k]=un[k]||u;out.push({id,team,tipo:cl(r[C.tipo])||'Sin tipo',est:cl(r[C.est])||'Sin estado',g:cl(r[C.g])||'Sin tipo de gestión',f:cl(r[C.f]).slice(0,10),h:(cl(r[C.hr]).match(/^(\d{1,2}):/)||[])[1],u:un[k]})}
+ if(!out.length)throw new Error('No encontré filas con datos.');return out}
+const opts=(id,vals,all)=>{const c=$(id).value;$(id).innerHTML='<option value="">'+all+'</option>'+vals.map(v=>'<option>'+esc(v)+'</option>').join('');$(id).value=vals.includes(c)?c:''};
+const cnt=(rows,f)=>{const m={};rows.forEach(r=>{const k=f(r);m[k]=(m[k]||0)+1});return Object.entries(m).sort((a,b)=>b[1]-a[1])};
+const cur=()=>{const t=$('pdTeam').value,u=$('pdUser').value,p=$('pdTipo').value;return D.filter(r=>(!t||r.team===t)&&(!u||r.u===u)&&(!p||r.tipo===p))};
+function bars(id,items,tot,color){const mx=Math.max(1,...items.map(x=>x[1]));$(id).innerHTML=items.length?items.map(x=>'<div class="bc"><span class="lb" title="'+esc(x[0])+'">'+esc(x[0])+'</span><div class="tk"><div class="fl" style="width:'+x[1]/mx*100+'%;background:'+(color&&color[x[0]]||'var(--ac)')+'"></div></div><span class="vl">'+x[1]+' ('+(tot?Math.round(x[1]/tot*100):0)+'%)</span></div>').join(''):'<p class="mu">Sin datos.</p>'}
+function stackU(id,rows){const m={};rows.forEach(r=>{(m[r.u]=m[r.u]||{n:0,t:{}}).n++;m[r.u].t[r.team]=(m[r.u].t[r.team]||0)+1});const a=Object.entries(m).sort((x,y)=>y[1].n-x[1].n),mx=Math.max(1,...a.map(x=>x[1].n));
+ $(id).innerHTML=a.length?a.map(x=>'<div class="bc"><span class="lb" title="'+esc(x[0])+'">'+esc(x[0])+'</span><div class="tk">'+TM.map(k=>x[1].t[k]?'<div class="sg" style="width:'+x[1].t[k]/mx*100+'%;background:'+COL[k]+'" title="'+k+': '+x[1].t[k]+'"></div>':'').join('')+'</div><span class="vl">'+x[1].n+'</span></div>').join(''):'<p class="mu">Sin datos.</p>'}
+function tbl(id,head,rows){$(id).innerHTML='<tr>'+head.map(h=>'<th>'+esc(h)+'</th>').join('')+'</tr>'+rows.map(r=>'<tr>'+r.map((c,i)=>'<td>'+(i===0?esc(c):c)+'</td>').join('')+'</tr>').join('')}
+function byTeam(rows,f,total){const ks=cnt(rows,f).map(x=>x[0]),tm=TM.filter(k=>rows.some(r=>r.team===k));
+ return {head:['Tipo',...tm,'Total','% del total'],rows:ks.map(k=>{const rr=rows.filter(r=>f(r)===k);return [k,...tm.map(t=>rr.filter(r=>r.team===t).length),'<b>'+rr.length+'</b>',(total?(rr.length/total*100).toFixed(1):0)+'%']})}}
+function render(){
+ if(!D.length)return;const R=cur(),N=R.length,uq=new Set(R.filter(r=>r.id).map(r=>r.id)).size,us=cnt(R,r=>r.u),tp=cnt(R,r=>r.tipo),gs=cnt(R,r=>r.g),tm=cnt(R,r=>r.team);
+ const k=(t,v,s)=>'<div class="kpi"><small>'+t+'</small><b>'+v+'</b>'+(s?'<span class="sm">'+s+'</span>':'')+'</div>',pc=n=>N?Math.round(n/N*100)+'%':'0%';
+ $('pdStats').innerHTML=k('Gestiones',N,'Registros del Tipificador')+k('Casos únicos',uq,'Un caso puede tener varias gestiones')+k('Personas',us.length,'Promedio '+(us.length?Math.round(N/us.length):0)+' gestiones por persona')+k('Gestiona más',us[0]?esc(us[0][0]):'–',us[0]?us[0][1]+' gestiones ('+pc(us[0][1])+')':'')+k('Tipo de caso principal',tp[0]?esc(tp[0][0]):'–',tp[0]?pc(tp[0][1])+' de las gestiones':'')+k('Gestión más frecuente',gs[0]?esc(gs[0][0]):'–',gs[0]?pc(gs[0][1])+' de las gestiones':'')+k('Equipo con más gestiones',tm[0]?tm[0][0]+' '+pc(tm[0][1]):'–',tm.slice(1).filter(x=>x[1]/N>=0.005).map(x=>x[0]+' '+pc(x[1])).join(' · ')+' · según el número de caso');
+ const ds=R.map(r=>r.f).filter(Boolean).sort();$('pdCov').textContent=N+' gestión(es) en el análisis'+(ds.length?' · del '+ds[0]+' al '+ds[ds.length-1]:'')+'.';
+ stackU('pdChUser',R);bars('pdChTipo',tp,N);bars('pdChGest',gs,N);bars('pdChEst',cnt(R,r=>r.est),N);bars('pdChTeam',tm,N,COL);
+ bars('pdChDay',cnt(R,r=>r.f).filter(x=>x[0]).sort((a,b)=>a[0]<b[0]?-1:1).map(x=>[x[0].slice(8)+'/'+x[0].slice(5,7),x[1]]),N);
+ bars('pdChHour',cnt(R,r=>r.h).filter(x=>x[0]!=null&&x[0]!=='undefined').sort((a,b)=>a[0]-b[0]).map(x=>[String(x[0]).padStart(2,'0')+':00',x[1]]),N);
+ const tt=tp.slice(0,5).map(x=>x[0]);
+ tbl('pdTUser',['Persona','Equipo principal','Gestiones','% del total','Casos únicos',...tt,'Gestión principal'],us.map(x=>{const rr=R.filter(r=>r.u===x[0]),te=cnt(rr.filter(r=>r.team!=='Sin clasificar'),r=>r.team),g=cnt(rr,r=>r.g)[0];return [x[0],te[0]?te[0][0]+' ('+Math.round(te[0][1]/rr.length*100)+'%)':'–','<b>'+x[1]+'</b>',pc(x[1]),new Set(rr.filter(r=>r.id).map(r=>r.id)).size,...tt.map(t=>rr.filter(r=>r.tipo===t).length),g?esc(g[0])+' ('+g[1]+')':'–']}));
+ const a=byTeam(R,r=>r.g,N),b=byTeam(R,r=>r.tipo,N);tbl('pdTGest',a.head,a.rows);tbl('pdTTipo',b.head,b.rows);
+}
+$('pdFile').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;$('pdMsg').textContent='Leyendo '+f.name+'…';const fr=new FileReader();
+ fr.onload=ev=>{try{D=load(ev.target.result);opts('pdUser',[...new Set(D.map(r=>r.u))].sort(),'Todas');opts('pdTipo',[...new Set(D.map(r=>r.tipo))].sort(),'Todos');$('pdRes').hidden=false;render();$('pdMsg').textContent='Listo: '+D.length+' gestiones cargadas de '+new Set(D.map(r=>r.u)).size+' persona(s).'}catch(err){$('pdMsg').textContent='⚠ '+err.message;$('pdRes').hidden=true}e.target.value=''};fr.readAsArrayBuffer(f)});
+['pdTeam','pdUser','pdTipo'].forEach(i=>$(i).addEventListener('change',render));
 })();
 </script>
 </body>
