@@ -228,6 +228,11 @@ tr.mu td{color:var(--mu)}
     <p class="mu">Marca <b>Atribuible</b> solo cuando la insatisfacción se relacione con una acción u omisión de la atención del especialista y explica el motivo. Si depende de factores ajenos a la atención, selecciona <b>No atribuible</b>. Si falta información para decidir, déjalo en <b>Pendiente</b>. El motivo es obligatorio para exportar un detractor atribuible.</p>
     <p class="mu" id="xRes" style="margin:0 0 8px"></p>
     <div class="tw"><table id="xDt"></table></div>
+    <h3 class="st2">Mejores mensajes de promotores</h3>
+    <p class="mu">Casos con CSAT 6–7 o NPS 9–10 que traen un mensaje. Van primero los que son promotores en CSAT y NPS a la vez, con la calificación más alta. Responde a los filtros de agente y fuente. Usa el comentario de la encuesta si existe; si no, el verbatim del caso.</p>
+    <div class="row" style="grid-template-columns:repeat(auto-fit,minmax(200px,280px));margin-bottom:8px"><div><label for="xPmN">Cuántos mostrar</label><select id="xPmN"><option value="10">Top 10</option><option value="25">Top 25</option><option value="50">Top 50</option></select></div><div><label for="xPmSrc">Mensajes a incluir</label><select id="xPmSrc"><option value="cm">Solo comentarios de la encuesta</option><option value="all">Incluir verbatim del caso</option></select></div></div>
+    <p class="mu" id="xPmRes" style="margin:0 0 8px"></p>
+    <div class="tw"><table id="xPm"></table></div>
     <div class="btns" style="margin-top:14px"><button type="button" id="xXlsExp" style="background:var(--ac);border-color:var(--ac);color:var(--sf)">Exportar Excel consolidado</button><button type="button" id="xCsvExp">Exportar reporte unificado CSV</button><button type="button" id="xClr">Limpiar GCCP + Sprinklr</button></div>
   </div>
 </div>
@@ -1189,6 +1194,7 @@ function parseGCCP(aoa){
     var c=map[id],q=norm(row[C.q]),v=num(row[C.r]);
     if(/satisfech/.test(q)&&v!=null)c.csat=v;
     if(/recomend|0 a 10/.test(q)&&v!=null)c.nps=v;
+    var rawR=s(row[C.r]).trim();if(v==null&&rawR.length>=15&&!/satisfech|recomend|0 a 10/.test(q)&&!c.cm)c.cm=rawR;
     if(!c.ag&&C.ag>=0)c.ag=s(row[C.ag]);
     if(!c.date&&d){c.date=d;c.day=day(d);c.hora=hourDate?hourDate.getHours():d.getHours()}
   }
@@ -1203,6 +1209,7 @@ function parseSprinklr(aoa){
   var z=headerIndex(aoa,['Case Id']);if(!z)throw new Error('Sprinklr: no encontré la columna Case Id.');
   var h=z.h,C={id:h.indexOf('Case Id'),dt:findCol(h,[function(n){return /case creation time \(survey\)/.test(n)},function(n){return /creation time/.test(n)}]),cs:findCol(h,[function(n){return /satisfaction survey.*please rate|satisfaction.*rate/.test(n)&&!/not that satisfied/.test(n)}]),np:findCol(h,[function(n){return /based on your recent experience.*likely|how likely would you be/.test(n)},function(n){return /recommend/.test(n)}]),ag:findCol(h,[function(n){return /last engaged user/.test(n)},function(n){return /last engaged|engaged user/.test(n)},function(n){return /case owner|owner|agent|specialist|assignee/.test(n)}]),brand:findCol(h,[function(n){return /brand \(case\)/.test(n)}]),country:findCol(h,[function(n){return /country/.test(n)}]),sku:findCol(h,[function(n){return /product code/.test(n)}]),sub:findCol(h,[function(n){return /subject code/.test(n)}]),tipo:findCol(h,[function(n){return /case type/.test(n)}])};
   if(C.dt<0)throw new Error('Sprinklr: no encontré Case Creation Time (Survey).');
+  C.cm=findCol(h,[function(n){return /comment|comentario|feedback|tell us|additional|explain|verbatim|mensaje/.test(n)&&!/consent/.test(n)}]);
   if(C.ag<0)console.warn('Sprinklr: no encontré la columna del especialista (Last Engaged User).');
   var map={};
   for(var i=z.row+1;i<aoa.length;i++){
@@ -1210,6 +1217,7 @@ function parseSprinklr(aoa){
     var d=parseDate(row[C.dt]),c=map[id];
     if(!c)c=map[id]={id:id,source:'Sprinklr',ag:C.ag>=0?s(row[C.ag]).replace(/\s+/g,' ').trim():'',date:d,day:day(d),hora:d?d.getHours():null,csat:C.cs>=0?surveyScore(row[C.cs]):null,nps:C.np>=0?surveyScore(row[C.np]):null,ver:'',brand:C.brand>=0?s(row[C.brand]):'',sku:C.sku>=0?s(row[C.sku]):'',country:C.country>=0?s(row[C.country]):'',sub:C.sub>=0?s(row[C.sub]):'',tipo:C.tipo>=0?s(row[C.tipo]):'',attr:'',why:'',mx:''};
     else{if(c.csat==null&&C.cs>=0)c.csat=surveyScore(row[C.cs]);if(c.nps==null&&C.np>=0)c.nps=surveyScore(row[C.np]);}
+    if(C.cm>=0&&!c.cm){var tx=s(row[C.cm]).trim();if(tx.length>=5)c.cm=tx}
   }
   return Object.keys(map).map(function(k){return map[k]}).filter(function(c){return c.day})
 }
@@ -1450,7 +1458,7 @@ function render(){
   }
   if(!ALL.length){$x('xOut').hidden=true;$x('xDay').textContent='–';return}
   $x('xOut').hidden=false;$x('xDay').textContent='GCCP: '+dateLabel('GCCP')+' · Sprinklr: '+dateLabel('Sprinklr');
-  if(!list.length){['xSt','xStat','xCh','xSrc','xHr','xSp','xDim','xDt'].forEach(function(i){$x(i).innerHTML=''});$x('xRes').textContent='';$x('xFltNote').textContent='No hay respuestas para esa combinación de agente y fuente. Cambia el filtro.';return}
+  if(!list.length){['xSt','xStat','xCh','xSrc','xHr','xSp','xDim','xDt','xPm'].forEach(function(i){$x(i).innerHTML=''});$x('xRes').textContent='';$x('xFltNote').textContent='No hay respuestas para esa combinación de agente y fuente. Cambia el filtro.';return}
   var t=sourceTable(list);
   function k(n,v,sm){return'<div class="kpi"><small>'+n+'</small><b>'+v+'</b><span class="sm">'+sm+'</span></div>'}
   $x('xSt').innerHTML=k(FLT.ag?'NPS · '+esc(AGN[FLT.ag]):both?'NPS consolidado':'NPS de la selección',t.nps==null?'–':(t.nps>0?'+':'')+t.nps,t.np+' promotores · '+t.nn+' neutros · '+t.nd+' detractores')+k(FLT.ag?'CSAT · '+esc(AGN[FLT.ag]):both?'CSAT consolidado':'CSAT de la selección',pc(t.csat),t.cp+' satisfechos · '+t.cd+' insatisfechos')+k('Casos únicos',list.length,'GCCP '+gList.length+' · Sprinklr '+sList.length);
@@ -1470,7 +1478,16 @@ function render(){
   var dh='<tr><th>Fuente</th><th>Caso</th><th>Especialista</th><th>Hora</th><th>CSAT</th><th>NPS</th><th>¿Atribuible?</th><th>Motivo</th></tr>';
   det.forEach(function(c){dh+='<tr data-src="'+esc(c.source)+'" data-id="'+esc(c.id)+'"><td>'+esc(c.source)+'</td><td><b>'+esc(c.id)+'</b></td><td>'+esc(c.ag||'—')+'</td><td>'+lab(c.hora)+'</td><td>'+esc(c.csat==null?'—':c.csat)+'</td><td>'+esc(c.nps==null?'—':c.nps)+'</td><td><select data-f="attr"><option value=""'+(!c.attr?' selected':'')+'>Pendiente</option><option value="si"'+(c.attr==='si'?' selected':'')+'>Atribuible</option><option value="no"'+(c.attr==='no'?' selected':'')+'>No atribuible</option></select></td><td>'+(c.attr==='si'?'<textarea data-f="why" rows="2" aria-label="Motivo de atribución para caso '+esc(c.id)+'" placeholder="Escribe el motivo por el que es atribuible...">'+esc(c.why||'')+'</textarea>':c.attr==='no'?'<span class="mu">No atribuible: no requiere motivo</span>':'<span class="mu">Selecciona “Atribuible” para escribir el motivo.</span>')+'</td></tr>'});
   $x('xDt').innerHTML=dh;
+  renderPm(list);
 }
+function renderPm(list){
+  var inc=$x('xPmSrc').value==='all',pro=list.filter(function(c){return cCls(c.csat)==='P'||nCls(c.nps)==='P'}),withMsg=pro.map(function(c){return{c:c,m:(c.cm||(inc?c.ver:'')||'').replace(/\s+/g,' ').trim(),k:c.cm?'Comentario de la encuesta':'Verbatim del caso'}}).filter(function(x){return x.m.length>=5});
+  withMsg.sort(function(a,b){var sa=(cCls(a.c.csat)==='P'?1:0)+(nCls(a.c.nps)==='P'?1:0),sb=(cCls(b.c.csat)==='P'?1:0)+(nCls(b.c.nps)==='P'?1:0);return sb-sa||((b.c.nps||0)+(b.c.csat||0))-((a.c.nps||0)+(a.c.csat||0))||Math.min(b.m.length,300)-Math.min(a.m.length,300)});
+  var n=parseInt($x('xPmN').value,10)||10,top=withMsg.slice(0,n);
+  $x('xPmRes').textContent='Promotores: '+pro.length+' · con mensaje: '+withMsg.length+(withMsg.length>n?' · mostrando los mejores '+n:'');
+  $x('xPm').innerHTML=top.length?'<tr><th>#</th><th>Fuente</th><th>Caso</th><th>Especialista</th><th>CSAT</th><th>NPS</th><th>Mensaje</th><th>Origen</th></tr>'+top.map(function(x,i){var c=x.c;return'<tr><td>'+(i+1)+'</td><td>'+esc(c.source)+'</td><td><b>'+esc(c.id)+'</b></td><td>'+esc(c.ag||'—')+'</td><td>'+esc(c.csat==null?'—':c.csat)+'</td><td>'+esc(c.nps==null?'—':c.nps)+'</td><td style="min-width:260px">“'+esc(x.m.length>500?x.m.slice(0,500)+'…':x.m)+'”</td><td class="mu">'+x.k+'</td></tr>'}).join(''):'<tr><td class="mu">'+(pro.length?(inc?'Hay promotores, pero la base cargada no trae comentarios ni verbatims para mostrar.':'Hay promotores, pero la base no trae comentarios de la encuesta. Cambia a «Incluir verbatim del caso» para ver el mensaje del cliente en el caso.'):'No hay promotores para esta combinación de agente y fuente.')+'</td></tr>';
+}
+$x('xPmN').addEventListener('change',function(){render()});$x('xPmSrc').addEventListener('change',function(){render()});
 function updateState(msg){
   var g=allCases('GCCP').length,s=allCases('Sprinklr').length,both=g>0&&s>0;
   $x('xState').textContent=both?'GCCP ✓ + Sprinklr ✓':(g?'Solo GCCP disponible':(s?'Solo Sprinklr disponible':'Esperando archivos'));
