@@ -441,14 +441,18 @@ tr.mu td{color:var(--mu)}
 <div id="pdRes" hidden>
   <div class="stats" id="pdStats" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))"></div>
   <p class="mu" id="pdCov"></p>
-  <div class="card"><h2>Gráficos de productividad</h2><p class="sub">Cada gestión del Tipificador cuenta una vez. Responden a los filtros de equipo, persona y tipo de caso.</p><div class="cgrid">
-    <div><h3 class="st2">¿Quién hace más? Gestiones por persona</h3><div id="pdChUser"></div><p class="lg"><b style="color:#0f6b6b">■</b> Tradicional &nbsp; <b style="color:#d98a1f">■</b> Social Media &nbsp; <b style="color:#8a9aa0">■</b> Sin clasificar</p></div>
-    <div><h3 class="st2">¿Qué tipo de casos?</h3><div id="pdChTipo"></div></div>
-    <div><h3 class="st2">¿En qué hacemos más? Tipo de gestión</h3><div id="pdChGest"></div></div>
-    <div><h3 class="st2">Estado del caso</h3><div id="pdChEst"></div></div>
-    <div><h3 class="st2">Social Media vs Tradicional</h3><div id="pdChTeam"></div></div>
-    <div><h3 class="st2">Gestiones por día</h3><div id="pdChDay"></div></div>
-    <div><h3 class="st2">Gestiones por hora</h3><div id="pdChHour"></div></div></div></div>
+  <div class="card"><h2>Panorama general</h2><p class="sub">Cómo se reparte el trabajo: por equipo, por tipo de caso y por estado. Responde a los filtros de equipo, persona y tipo de caso.</p><div class="cgrid">
+    <div><h3 class="st2">Equipo</h3><div id="pdDEq"></div></div>
+    <div><h3 class="st2">Tipo de caso</h3><div id="pdDTipo"></div></div>
+    <div><h3 class="st2">Estado del caso</h3><div id="pdDEst"></div></div></div></div>
+  <div class="card"><h2>Tendencia diaria</h2><p class="sub">Gestiones por día, total y por equipo. Pasa el cursor sobre un punto para ver el valor.</p><div id="pdTrend"></div></div>
+  <div class="card"><h2>¿Quién hace más?</h2><div class="cgrid" style="grid-template-columns:repeat(auto-fit,minmax(420px,1fr))">
+    <div><h3 class="st2">Gestiones por persona y equipo</h3><div id="pdChUser"></div><p class="lg"><b style="color:#0f6b6b">■</b> Tradicional &nbsp; <b style="color:#d98a1f">■</b> Social Media &nbsp; <b style="color:#8a9aa0">■</b> Sin clasificar</p></div>
+    <div><h3 class="st2">Promedio de gestiones por día trabajado</h3><div id="pdAvg"></div><p class="lg">Total de gestiones ÷ días con registros de la persona.</p></div></div></div>
+  <div class="card"><h2>¿Qué hace cada persona?</h2><p class="sub">Mapa de calor de gestiones por persona y tipo de caso: más oscuro, más volumen.</p><div class="tw"><table id="pdHUser"></table></div></div>
+  <div class="card"><h2>¿En qué hacemos más?</h2><div class="cgrid" style="grid-template-columns:repeat(auto-fit,minmax(420px,1fr))"><div><h3 class="st2">Tipo de gestión</h3><div id="pdChGest"></div></div></div>
+    <h3 class="st2" style="margin-top:14px">Tipo de gestión por tipo de caso</h3><div class="tw"><table id="pdHGest"></table></div></div>
+  <div class="card"><h2>¿Cuándo se gestiona más?</h2><p class="sub">Gestiones por día de la semana y hora del día.</p><div class="tw"><table id="pdHTime"></table></div></div>
   <div class="card"><h2>Detalle por persona</h2><div class="tw"><table id="pdTUser"></table></div></div>
   <div class="card"><h2>Detalle por equipo: tipo de gestión</h2><div class="tw"><table id="pdTGest"></table></div></div>
   <div class="card"><h2>Detalle por equipo: tipo de caso</h2><div class="tw"><table id="pdTTipo"></table></div></div>
@@ -2358,14 +2362,34 @@ function stackU(id,rows){const m={};rows.forEach(r=>{(m[r.u]=m[r.u]||{n:0,t:{}})
 function tbl(id,head,rows){$(id).innerHTML='<tr>'+head.map(h=>'<th>'+esc(h)+'</th>').join('')+'</tr>'+rows.map(r=>'<tr>'+r.map((c,i)=>'<td>'+(i===0?esc(c):c)+'</td>').join('')+'</tr>').join('')}
 function byTeam(rows,f,total){const ks=cnt(rows,f).map(x=>x[0]),tm=TM.filter(k=>rows.some(r=>r.team===k));
  return {head:['Tipo',...tm,'Total','% del total'],rows:ks.map(k=>{const rr=rows.filter(r=>f(r)===k);return [k,...tm.map(t=>rr.filter(r=>r.team===t).length),'<b>'+rr.length+'</b>',(total?(rr.length/total*100).toFixed(1):0)+'%']})}}
+const PAL=['#0f6b6b','#d98a1f','#4a7fb5','#b5546b','#7a9a3c','#8a6bb5','#c4402f','#8a9aa0'];
+function donut(id,items,cmap){items=items.slice();if(items.length>7){const o=items.slice(6).reduce((a,x)=>a+x[1],0);items=items.slice(0,6).concat([['Otros',o]])}
+ const tot=items.reduce((a,x)=>a+x[1],0),C=2*Math.PI*40,col=(k,i)=>(cmap&&cmap[k])||PAL[i%PAL.length];let off=0;
+ const seg=items.map((x,i)=>{const L=tot?x[1]/tot*C:0,s='<circle r="40" cx="60" cy="60" fill="none" stroke="'+col(x[0],i)+'" stroke-width="20" stroke-dasharray="'+L+' '+(C-L)+'" stroke-dashoffset="'+(-off)+'" transform="rotate(-90 60 60)"><title>'+esc(x[0])+': '+x[1]+'</title></circle>';off+=L;return s}).join('');
+ $(id).innerHTML=tot?'<div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap"><svg viewBox="0 0 120 120" width="150" height="150" role="img" aria-label="Gráfico de dona">'+seg+'<text x="60" y="60" text-anchor="middle" font-size="17" font-weight="700" fill="currentColor">'+tot+'</text><text x="60" y="74" text-anchor="middle" font-size="8" fill="currentColor" opacity=".7">gestiones</text></svg><div style="font-size:12.5px;line-height:1.7">'+items.map((x,i)=>'<div><b style="color:'+col(x[0],i)+'">■</b> '+esc(x[0])+' · <b>'+x[1]+'</b> ('+Math.round(x[1]/tot*100)+'%)</div>').join('')+'</div></div>':'<p class="mu">Sin datos.</p>'}
+function lines(id,labels,series){if(!labels.length){$(id).innerHTML='<p class="mu">Sin datos.</p>';return}
+ const W=640,H=230,pl=36,pb=28,pt=12,pr=12,mx=Math.max(1,...series.flatMap(s=>s.v)),X=i=>pl+i*(W-pl-pr)/Math.max(1,labels.length-1),Y=v=>H-pb-v/mx*(H-pb-pt),step=Math.ceil(labels.length/12);
+ let g='';for(let k=0;k<=4;k++){const v=Math.round(mx*k/4),y=Y(v);g+='<line x1="'+pl+'" x2="'+(W-pr)+'" y1="'+y+'" y2="'+y+'" stroke="currentColor" opacity=".12"/><text x="'+(pl-6)+'" y="'+(y+3)+'" text-anchor="end" font-size="10" fill="currentColor" opacity=".7">'+v+'</text>'}
+ g+=labels.map((l,i)=>i%step===0?'<text x="'+X(i)+'" y="'+(H-8)+'" text-anchor="middle" font-size="10" fill="currentColor" opacity=".7">'+esc(l)+'</text>':'').join('');
+ g+=series.map(s=>'<polyline fill="none" stroke="'+s.c+'" stroke-width="'+(s.w||2)+'" points="'+s.v.map((v,i)=>X(i)+','+Y(v)).join(' ')+'"/>'+s.v.map((v,i)=>'<circle cx="'+X(i)+'" cy="'+Y(v)+'" r="3" fill="'+s.c+'"><title>'+esc(s.n)+' · '+esc(labels[i])+': '+v+'</title></circle>').join('')).join('');
+ $(id).innerHTML='<svg viewBox="0 0 '+W+' '+H+'" width="100%" role="img" aria-label="Tendencia diaria">'+g+'</svg><p class="lg">'+series.map(s=>'<b style="color:'+s.c+'">■</b> '+esc(s.n)).join(' &nbsp; ')+'</p>'}
+function heat(id,rows,cols,cnt,first,fmtCol){const m={};let mx=1;rows.forEach(r=>{m[r]={};cols.forEach(c=>{const n=cnt(r,c);m[r][c]=n;if(n>mx)mx=n})});
+ $(id).innerHTML=rows.length?'<tr><th>'+esc(first)+'</th>'+cols.map(c=>'<th style="text-align:center">'+esc(fmtCol?fmtCol(c):c)+'</th>').join('')+'<th style="text-align:center">Total</th></tr>'+rows.map(r=>'<tr><td><b>'+esc(r)+'</b></td>'+cols.map(c=>{const n=m[r][c];return'<td style="text-align:center;background:rgba(15,107,107,'+(n?(0.08+0.72*n/mx).toFixed(2):0)+');'+(n/mx>0.55?'color:#fff;font-weight:700':'')+'">'+(n||'·')+'</td>'}).join('')+'<td style="text-align:center"><b>'+cols.reduce((a,c)=>a+m[r][c],0)+'</b></td></tr>').join(''):'<tr><td class="mu">Sin datos.</td></tr>'}
+function avgBars(id,R){const m={};R.forEach(r=>{const o=m[r.u]=m[r.u]||{n:0,d:new Set()};o.n++;if(r.f)o.d.add(r.f)});const a=Object.entries(m).map(x=>({k:x[0],n:x[1].n,d:Math.max(1,x[1].d.size),v:x[1].n/Math.max(1,x[1].d.size)})).sort((x,y)=>y.v-x.v),mx=Math.max(1,...a.map(x=>x.v));
+ $(id).innerHTML=a.length?a.map(x=>'<div class="bc"><span class="lb" title="'+esc(x.k)+'">'+esc(x.k)+'</span><div class="tk"><div class="fl" style="width:'+x.v/mx*100+'%;background:var(--ac)"></div></div><span class="vl">'+x.v.toFixed(1)+'/día</span></div>').join(''):'<p class="mu">Sin datos.</p>'}
 function render(){
  if(!D.length)return;const R=cur(),N=R.length,uq=new Set(R.filter(r=>r.id).map(r=>r.id)).size,us=cnt(R,r=>r.u),tp=cnt(R,r=>r.tipo),gs=cnt(R,r=>r.g),tm=cnt(R,r=>r.team);
  const k=(t,v,s)=>'<div class="kpi"><small>'+t+'</small><b>'+v+'</b>'+(s?'<span class="sm">'+s+'</span>':'')+'</div>',pc=n=>N?Math.round(n/N*100)+'%':'0%';
  $('pdStats').innerHTML=k('Gestiones',N,'Registros del Tipificador')+k('Casos únicos',uq,'Un caso puede tener varias gestiones')+k('Personas',us.length,'Promedio '+(us.length?Math.round(N/us.length):0)+' gestiones por persona')+k('Gestiona más',us[0]?esc(us[0][0]):'–',us[0]?us[0][1]+' gestiones ('+pc(us[0][1])+')':'')+k('Tipo de caso principal',tp[0]?esc(tp[0][0]):'–',tp[0]?pc(tp[0][1])+' de las gestiones':'')+k('Gestión más frecuente',gs[0]?esc(gs[0][0]):'–',gs[0]?pc(gs[0][1])+' de las gestiones':'')+k('Equipo con más gestiones',tm[0]?tm[0][0]+' '+pc(tm[0][1]):'–',tm.slice(1).filter(x=>x[1]/N>=0.005).map(x=>x[0]+' '+pc(x[1])).join(' · ')+' · según el número de caso');
  const ds=R.map(r=>r.f).filter(Boolean).sort();$('pdCov').textContent=N+' gestión(es) en el análisis'+(ds.length?' · del '+ds[0]+' al '+ds[ds.length-1]:'')+'.';
- stackU('pdChUser',R);bars('pdChTipo',tp,N);bars('pdChGest',gs,N);bars('pdChEst',cnt(R,r=>r.est),N);bars('pdChTeam',tm,N,COL);
- bars('pdChDay',cnt(R,r=>r.f).filter(x=>x[0]).sort((a,b)=>a[0]<b[0]?-1:1).map(x=>[x[0].slice(8)+'/'+x[0].slice(5,7),x[1]]),N);
- bars('pdChHour',cnt(R,r=>r.h).filter(x=>x[0]!=null&&x[0]!=='undefined').sort((a,b)=>a[0]-b[0]).map(x=>[String(x[0]).padStart(2,'0')+':00',x[1]]),N);
+ donut('pdDEq',tm,COL);donut('pdDTipo',tp);donut('pdDEst',cnt(R,r=>r.est));
+ const days=[...new Set(R.map(r=>r.f).filter(Boolean))].sort(),byD=(f)=>days.map(d=>R.filter(r=>r.f===d&&f(r)).length);
+ lines('pdTrend',days.map(d=>d.slice(8)+'/'+d.slice(5,7)),[{n:'Total',c:'#10242b',w:2.5,v:byD(()=>true)},{n:'Tradicional',c:COL['Tradicional'],v:byD(r=>r.team==='Tradicional')},{n:'Social Media',c:COL['Social Media'],v:byD(r=>r.team==='Social Media')}]);
+ stackU('pdChUser',R);avgBars('pdAvg',R);bars('pdChGest',gs,N);
+ const tps=tp.map(x=>x[0]);heat('pdHUser',us.map(x=>x[0]),tps,(u,c)=>R.filter(r=>r.u===u&&r.tipo===c).length,'Persona');
+ heat('pdHGest',gs.map(x=>x[0]),tps,(g,c)=>R.filter(r=>r.g===g&&r.tipo===c).length,'Tipo de gestión');
+ const WD=['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'],wdOf=f=>{const d=new Date(f+'T00:00:00').getDay();return WD[(d+6)%7]},hrs=[...new Set(R.map(r=>r.h).filter(h=>h!=null&&h!=='undefined').map(Number))].sort((a,b)=>a-b);
+ heat('pdHTime',WD.filter(w=>R.some(r=>r.f&&wdOf(r.f)===w)),hrs,(w,h)=>R.filter(r=>r.f&&r.h!=null&&Number(r.h)===h&&wdOf(r.f)===w).length,'Día',h=>String(h).padStart(2,'0')+':00');
  const tt=tp.slice(0,5).map(x=>x[0]);
  tbl('pdTUser',['Persona','Equipo principal','Gestiones','% del total','Casos únicos',...tt,'Gestión principal'],us.map(x=>{const rr=R.filter(r=>r.u===x[0]),te=cnt(rr.filter(r=>r.team!=='Sin clasificar'),r=>r.team),g=cnt(rr,r=>r.g)[0];return [x[0],te[0]?te[0][0]+' ('+Math.round(te[0][1]/rr.length*100)+'%)':'–','<b>'+x[1]+'</b>',pc(x[1]),new Set(rr.filter(r=>r.id).map(r=>r.id)).size,...tt.map(t=>rr.filter(r=>r.tipo===t).length),g?esc(g[0])+' ('+g[1]+')':'–']}));
  const a=byTeam(R,r=>r.g,N),b=byTeam(R,r=>r.tipo,N);tbl('pdTGest',a.head,a.rows);tbl('pdTTipo',b.head,b.rows);
