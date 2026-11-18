@@ -233,6 +233,15 @@ tr.mu td{color:var(--mu)}
     <div class="row" style="grid-template-columns:repeat(auto-fit,minmax(200px,280px));margin-bottom:8px"><div><label for="xPmN">Cuántos mostrar</label><select id="xPmN"><option value="10">Top 10</option><option value="25">Top 25</option><option value="50">Top 50</option></select></div><div><label for="xPmSrc">Mensajes a incluir</label><select id="xPmSrc"><option value="cm">Solo comentarios de la encuesta</option><option value="all">Incluir verbatim del caso</option></select></div></div>
     <p class="mu" id="xPmRes" style="margin:0 0 8px"></p>
     <div class="tw"><table id="xPm"></table></div>
+    <h3 class="st2">Excelente atención en promotores: vista por país</h3>
+    <p class="mu">Revisa el verbatim de todos los promotores y marca los que muestran indicios de excelente atención: excelencia, resolución, amabilidad, rapidez, profesionalismo, agradecimiento y recomendación. Es una búsqueda por palabras clave en español, inglés y portugués: úsala como guía y confirma leyendo el mensaje. Responde a los filtros de agente y fuente.</p>
+    <div class="row" style="grid-template-columns:repeat(auto-fit,minmax(190px,1fr));margin-bottom:8px">
+      <div><label for="xExPais">País</label><select id="xExPais"><option value="">Todos</option></select></div>
+      <div><label for="xExCanal">Canal</label><select id="xExCanal"><option value="">Todos</option></select></div>
+      <div><label for="xExNivel">Indicios de excelente atención</label><select id="xExNivel"><option value="ind">Con indicios (alto y medio)</option><option value="alto">Solo alto</option><option value="all">Todos los promotores con mensaje</option></select></div>
+      <div><label for="xExQ">Buscar</label><input id="xExQ" type="text" placeholder="Palabra o número de caso"></div></div>
+    <p class="mu" id="xExRes" style="margin:0 0 8px"></p>
+    <div class="tw"><table id="xEx"></table></div>
     <div class="btns" style="margin-top:14px"><button type="button" id="xXlsExp" style="background:var(--ac);border-color:var(--ac);color:var(--sf)">Exportar Excel consolidado</button><button type="button" id="xCsvExp">Exportar reporte unificado CSV</button><button type="button" id="xClr">Limpiar GCCP + Sprinklr</button></div>
   </div>
 </div>
@@ -1199,14 +1208,14 @@ function findCol(h,preds){for(var i=0;i<h.length;i++){var n=norm(h[i]);for(var j
 function parseGCCP(aoa){
   var z=headerIndex(aoa,['Case Number','Question Name','Response']);
   if(!z)throw new Error('GCCP: no encontré las columnas Case Number, Question Name y Response.');
-  var h=z.h,C={id:h.indexOf('Case Number'),q:h.indexOf('Question Name'),r:h.indexOf('Response'),ag:h.indexOf('Case Owner'),dt:findCol(h,[function(n){return n==='created date'},function(n){return /created date/.test(n)}]),closed:h.indexOf('Date/Time Closed'),ver:h.indexOf('Verbatim (Local Language)'),brand:h.indexOf('Brand Name'),sku:h.indexOf('Product Description (SKU)'),country:h.indexOf('Consumer Country'),sub:h.indexOf('Subjects'),tipo:h.indexOf('Type of Communication')},map={};
+  var h=z.h,C={id:h.indexOf('Case Number'),q:h.indexOf('Question Name'),r:h.indexOf('Response'),ag:h.indexOf('Case Owner'),dt:findCol(h,[function(n){return n==='created date'},function(n){return /created date/.test(n)}]),closed:h.indexOf('Date/Time Closed'),ver:h.indexOf('Verbatim (Local Language)'),brand:h.indexOf('Brand Name'),sku:h.indexOf('Product Description (SKU)'),country:h.indexOf('Consumer Country'),sub:h.indexOf('Subjects'),tipo:h.indexOf('Type of Communication'),canal:findCol(h,[function(n){return /channel|canal|contact method|medium|social network/.test(n)}])},map={};
   for(var i=z.row+1;i<aoa.length;i++){
     var row=aoa[i],id=s(row[C.id]).trim();if(!id)continue;
     var surveyDate=C.dt>=0?parseDate(row[C.dt]):null, closedDate=C.closed>=0?parseDate(row[C.closed]):null;
     // Created Date (columna O) define el día del reporte. En la muestra viene solo como fecha;
     // si no trae hora, se usa la hora de Date/Time Closed para poder construir el corte horario.
     var d=surveyDate||closedDate, hourDate=(surveyDate&&surveyDate.getHours()!==0)?surveyDate:closedDate;
-    if(!map[id])map[id]={id:id,source:'GCCP',ag:C.ag>=0?s(row[C.ag]):'',date:d,day:day(d),hora:hourDate?hourDate.getHours():(d?d.getHours():null),csat:null,nps:null,ver:C.ver>=0?s(row[C.ver]):'',brand:C.brand>=0?s(row[C.brand]):'',sku:C.sku>=0?s(row[C.sku]):'',country:C.country>=0?s(row[C.country]):'',sub:C.sub>=0?s(row[C.sub]):'',tipo:C.tipo>=0?s(row[C.tipo]):'',attr:'',why:'',mx:''};
+    if(!map[id])map[id]={id:id,source:'GCCP',ag:C.ag>=0?s(row[C.ag]):'',date:d,day:day(d),hora:hourDate?hourDate.getHours():(d?d.getHours():null),csat:null,nps:null,ver:C.ver>=0?s(row[C.ver]):'',brand:C.brand>=0?s(row[C.brand]):'',sku:C.sku>=0?s(row[C.sku]):'',country:C.country>=0?s(row[C.country]):'',sub:C.sub>=0?s(row[C.sub]):'',tipo:C.tipo>=0?s(row[C.tipo]):'',canal:C.canal>=0?s(row[C.canal]):(C.tipo>=0?s(row[C.tipo]):''),attr:'',why:'',mx:''};
     var c=map[id],q=norm(row[C.q]),v=num(row[C.r]);
     if(/satisfech/.test(q)&&v!=null)c.csat=v;
     if(/recomend|0 a 10/.test(q)&&v!=null)c.nps=v;
@@ -1223,7 +1232,7 @@ function surveyScore(v){
 }
 function parseSprinklr(aoa){
   var z=headerIndex(aoa,['Case Id']);if(!z)throw new Error('Sprinklr: no encontré la columna Case Id.');
-  var h=z.h,C={id:h.indexOf('Case Id'),dt:findCol(h,[function(n){return /case creation time \(survey\)/.test(n)},function(n){return /creation time/.test(n)}]),cs:findCol(h,[function(n){return /satisfaction survey.*please rate|satisfaction.*rate/.test(n)&&!/not that satisfied/.test(n)}]),np:findCol(h,[function(n){return /based on your recent experience.*likely|how likely would you be/.test(n)},function(n){return /recommend/.test(n)}]),ag:findCol(h,[function(n){return /last engaged user/.test(n)},function(n){return /last engaged|engaged user/.test(n)},function(n){return /case owner|owner|agent|specialist|assignee/.test(n)}]),brand:findCol(h,[function(n){return /brand \(case\)/.test(n)}]),country:findCol(h,[function(n){return /country/.test(n)}]),sku:findCol(h,[function(n){return /product code/.test(n)}]),sub:findCol(h,[function(n){return /subject code/.test(n)}]),tipo:findCol(h,[function(n){return /case type/.test(n)}])};
+  var h=z.h,C={id:h.indexOf('Case Id'),dt:findCol(h,[function(n){return /case creation time \(survey\)/.test(n)},function(n){return /creation time/.test(n)}]),cs:findCol(h,[function(n){return /satisfaction survey.*please rate|satisfaction.*rate/.test(n)&&!/not that satisfied/.test(n)}]),np:findCol(h,[function(n){return /based on your recent experience.*likely|how likely would you be/.test(n)},function(n){return /recommend/.test(n)}]),ag:findCol(h,[function(n){return /last engaged user/.test(n)},function(n){return /last engaged|engaged user/.test(n)},function(n){return /case owner|owner|agent|specialist|assignee/.test(n)}]),brand:findCol(h,[function(n){return /brand \(case\)/.test(n)}]),country:findCol(h,[function(n){return /country/.test(n)}]),sku:findCol(h,[function(n){return /product code/.test(n)}]),sub:findCol(h,[function(n){return /subject code/.test(n)}]),tipo:findCol(h,[function(n){return /case type/.test(n)}]),canal:findCol(h,[function(n){return /channel|canal|social network|network/.test(n)&&!/consent/.test(n)}])};
   if(C.dt<0)throw new Error('Sprinklr: no encontré Case Creation Time (Survey).');
   C.cm=findCol(h,[function(n){return /comment|comentario|feedback|tell us|additional|explain|verbatim|mensaje/.test(n)&&!/consent/.test(n)}]);
   if(C.ag<0)console.warn('Sprinklr: no encontré la columna del especialista (Last Engaged User).');
@@ -1231,7 +1240,7 @@ function parseSprinklr(aoa){
   for(var i=z.row+1;i<aoa.length;i++){
     var row=aoa[i],id=s(row[C.id]).trim();if(!id)continue;
     var d=parseDate(row[C.dt]),c=map[id];
-    if(!c)c=map[id]={id:id,source:'Sprinklr',ag:C.ag>=0?s(row[C.ag]).replace(/\s+/g,' ').trim():'',date:d,day:day(d),hora:d?d.getHours():null,csat:C.cs>=0?surveyScore(row[C.cs]):null,nps:C.np>=0?surveyScore(row[C.np]):null,ver:'',brand:C.brand>=0?s(row[C.brand]):'',sku:C.sku>=0?s(row[C.sku]):'',country:C.country>=0?s(row[C.country]):'',sub:C.sub>=0?s(row[C.sub]):'',tipo:C.tipo>=0?s(row[C.tipo]):'',attr:'',why:'',mx:''};
+    if(!c)c=map[id]={id:id,source:'Sprinklr',ag:C.ag>=0?s(row[C.ag]).replace(/\s+/g,' ').trim():'',date:d,day:day(d),hora:d?d.getHours():null,csat:C.cs>=0?surveyScore(row[C.cs]):null,nps:C.np>=0?surveyScore(row[C.np]):null,ver:'',brand:C.brand>=0?s(row[C.brand]):'',sku:C.sku>=0?s(row[C.sku]):'',country:C.country>=0?s(row[C.country]):'',sub:C.sub>=0?s(row[C.sub]):'',tipo:C.tipo>=0?s(row[C.tipo]):'',canal:C.canal>=0?s(row[C.canal]):(C.tipo>=0?s(row[C.tipo]):''),attr:'',why:'',mx:''};
     else{if(c.csat==null&&C.cs>=0)c.csat=surveyScore(row[C.cs]);if(c.nps==null&&C.np>=0)c.nps=surveyScore(row[C.np]);}
     if(C.cm>=0&&!c.cm){var tx=s(row[C.cm]).trim();if(tx.length>=5)c.cm=tx}
   }
@@ -1474,7 +1483,7 @@ function render(){
   }
   if(!ALL.length){$x('xOut').hidden=true;$x('xDay').textContent='–';return}
   $x('xOut').hidden=false;$x('xDay').textContent='GCCP: '+dateLabel('GCCP')+' · Sprinklr: '+dateLabel('Sprinklr');
-  if(!list.length){['xSt','xStat','xCh','xSrc','xHr','xSp','xDim','xDt','xPm'].forEach(function(i){$x(i).innerHTML=''});$x('xRes').textContent='';$x('xFltNote').textContent='No hay respuestas para esa combinación de agente y fuente. Cambia el filtro.';return}
+  if(!list.length){['xSt','xStat','xCh','xSrc','xHr','xSp','xDim','xDt','xPm','xEx'].forEach(function(i){$x(i).innerHTML=''});$x('xRes').textContent='';$x('xFltNote').textContent='No hay respuestas para esa combinación de agente y fuente. Cambia el filtro.';return}
   var t=sourceTable(list);
   function k(n,v,sm){return'<div class="kpi"><small>'+n+'</small><b>'+v+'</b><span class="sm">'+sm+'</span></div>'}
   $x('xSt').innerHTML=k(FLT.ag?'NPS · '+esc(AGN[FLT.ag]):both?'NPS consolidado':'NPS de la selección',t.nps==null?'–':(t.nps>0?'+':'')+t.nps,t.np+' promotores · '+t.nn+' neutros · '+t.nd+' detractores')+k(FLT.ag?'CSAT · '+esc(AGN[FLT.ag]):both?'CSAT consolidado':'CSAT de la selección',pc(t.csat),t.cp+' satisfechos · '+t.cd+' insatisfechos')+k('Casos únicos',list.length,'GCCP '+gList.length+' · Sprinklr '+sList.length);
@@ -1495,7 +1504,28 @@ function render(){
   det.forEach(function(c){dh+='<tr data-src="'+esc(c.source)+'" data-id="'+esc(c.id)+'"><td>'+esc(c.source)+'</td><td><b>'+esc(c.id)+'</b></td><td>'+esc(c.ag||'—')+'</td><td>'+lab(c.hora)+'</td><td>'+esc(c.csat==null?'—':c.csat)+'</td><td>'+esc(c.nps==null?'—':c.nps)+'</td><td><select data-f="attr"><option value=""'+(!c.attr?' selected':'')+'>Pendiente</option><option value="si"'+(c.attr==='si'?' selected':'')+'>Atribuible</option><option value="no"'+(c.attr==='no'?' selected':'')+'>No atribuible</option></select></td><td>'+(c.attr==='si'?'<textarea data-f="why" rows="2" aria-label="Motivo de atribución para caso '+esc(c.id)+'" placeholder="Escribe el motivo por el que es atribuible...">'+esc(c.why||'')+'</textarea>':c.attr==='no'?'<span class="mu">No atribuible: no requiere motivo</span>':'<span class="mu">Selecciona “Atribuible” para escribir el motivo.</span>')+'</td></tr>'});
   $x('xDt').innerHTML=dh;
   renderPm(list);
+  renderEx(list);
 }
+function acc(z){return z.replace(/[aeioun]/g,function(c){return{a:'[aáàâãä]',e:'[eéèêë]',i:'[iíìîï]',o:'[oóòôõö]',u:'[uúùûü]',n:'[nñ]'}[c]})}
+var EXC=[['Excelencia',3,['excelen','perfect','maravill','genial','increible','fantastic','great','excellent','otimo','buenisim','muy bien','10/10','impecable']],['Resolución',3,['resolv','resuel','solucion','solved','aclar','ayud','helped','helpful','ajud','me orient']],['Amabilidad',2,['amab','cordial','atent','pacien','empati','respetuos','kind','friendly','polite','gentil','simpat','cortes','educad','calidez','trato']],['Rapidez',2,['rapid','agil','inmediat','prontamente','quick','fast','prompt','veloc']],['Profesionalismo',2,['profesional','profission','claridad','clar','explic','orient','asesor','professional','conocimiento']],['Agradecimiento',1,['gracias','agradez','agradec','thank','obrigad']],['Recomendación',2,['recomiend','recomendar','recomendaria','volver','seguire comprando','fiel','recommend','buy again']]];
+EXC.forEach(function(c){c.re=new RegExp('(?<![a-záéíóúñãõçàâêôü])(?:'+c[2].map(acc).join('|')+')','i')});
+var EXALL=new RegExp('(?<![a-záéíóúñãõçàâêôü])(?:'+EXC.reduce(function(a,c){return a.concat(c[2])},[]).map(acc).join('|')+')[a-záéíóúñãõç]*','gi'),
+ EXNEG=new RegExp('(?<![a-záéíóúñãõçàâêôü])(?:'+['no me (?:resolv|ayud|respond|solucion)','nunca','pesim','terribl','molest','queja','reclam','demor','no funcion','mala atenc','worst','never','unhappy','decepcion','insatisf'].map(acc).join('|')+')','i');
+function exc(txt){var cats=[],sc=0;EXC.forEach(function(c){if(c.re.test(txt)){cats.push(c[0]);sc+=c[1]}});return{cats:cats,sc:sc,neg:EXNEG.test(txt)}}
+var exLast=[];
+function renderEx(list){
+  exLast=list||exLast;var pro=exLast.filter(function(c){return cCls(c.csat)==='P'||nCls(c.nps)==='P'});
+  var rows=pro.map(function(c){var m=(c.cm||c.ver||'').replace(/\s+/g,' ').trim(),e=exc(m),lv=!m?'':e.neg?(e.sc>=3?'Medio':'Bajo'):e.sc>=6?'Alto':e.sc>=3?'Medio':e.sc>0?'Bajo':'Sin indicios';return{c:c,m:m,e:e,lv:lv,pais:(c.country||'').trim()||'Sin país',canal:(c.canal||'').trim()||'Sin canal'}}).filter(function(x){return x.m.length>=5});
+  function fill(id,vals,all){var cur=$x(id).value;$x(id).innerHTML='<option value="">'+all+'</option>'+vals.map(function(v){return'<option>'+esc(v)+'</option>'}).join('');$x(id).value=vals.indexOf(cur)>=0?cur:''}
+  var uq=function(f){return rows.map(f).filter(function(v,i,a){return a.indexOf(v)===i}).sort()};fill('xExPais',uq(function(x){return x.pais}),'Todos');fill('xExCanal',uq(function(x){return x.canal}),'Todos');
+  var p=$x('xExPais').value,ca=$x('xExCanal').value,nv=$x('xExNivel').value,q=($x('xExQ').value||'').toLowerCase().trim(),ord={Alto:3,Medio:2,Bajo:1,'Sin indicios':0};
+  var f=rows.filter(function(x){return(!p||x.pais===p)&&(!ca||x.canal===ca)&&(nv==='all'||(nv==='alto'?x.lv==='Alto':x.lv==='Alto'||x.lv==='Medio'))&&(!q||x.m.toLowerCase().indexOf(q)>=0||String(x.c.id).toLowerCase().indexOf(q)>=0)}).sort(function(a,b){return ord[b.lv]-ord[a.lv]||b.e.sc-a.e.sc||(b.c.nps||0)-(a.c.nps||0)});
+  var sinMsg=pro.length-rows.length,alto=rows.filter(function(x){return x.lv==='Alto'}).length,med=rows.filter(function(x){return x.lv==='Medio'}).length;
+  $x('xExRes').textContent='Promotores: '+pro.length+' · con mensaje: '+rows.length+' · indicios altos: '+alto+' · medios: '+med+' · sin mensaje: '+sinMsg+' · mostrando '+Math.min(f.length,200)+' de '+f.length;
+  var bd={Alto:'background:#1c8a5a;color:#fff',Medio:'background:#d98a1f;color:#fff',Bajo:'background:#8a9aa0;color:#fff','Sin indicios':'background:#dfe6e9;color:#10242b'};
+  $x('xEx').innerHTML=f.length?'<tr><th>País</th><th>Canal</th><th>Caso</th><th>Fuente</th><th>Especialista</th><th>CSAT</th><th>NPS</th><th>Verbatim</th><th>Indicios</th></tr>'+f.slice(0,200).map(function(x){var c=x.c;return'<tr><td>'+esc(x.pais)+'</td><td>'+esc(x.canal)+'</td><td><b>'+esc(c.id)+'</b></td><td>'+esc(c.source)+'</td><td>'+esc(c.ag||'—')+'</td><td>'+esc(c.csat==null?'—':c.csat)+'</td><td>'+esc(c.nps==null?'—':c.nps)+'</td><td style="min-width:280px">“'+esc(x.m.length>500?x.m.slice(0,500)+'…':x.m).replace(EXALL,'<mark>$&</mark>')+'”</td><td><span style="padding:2px 8px;border-radius:99px;font-size:12px;font-weight:700;'+bd[x.lv]+'">'+x.lv+'</span><div class="mu" style="margin-top:4px;font-size:12px">'+esc(x.e.cats.join(' · '))+(x.e.neg?'<br><b style="color:#c4402f">Posible queja: revisar</b>':'')+'</div></td></tr>'}).join(''):'<tr><td class="mu">'+(rows.length?'Ningún promotor coincide con estos filtros. Prueba con «Todos los promotores con mensaje».':pro.length?'Hay promotores, pero la base no trae verbatim ni comentarios. Vuelve a cargar las bases para incluir las columnas de mensaje.':'No hay promotores para esta combinación de agente y fuente.')+'</td></tr>';
+}
+['xExPais','xExCanal','xExNivel'].forEach(function(i){$x(i).addEventListener('change',function(){renderEx()})});$x('xExQ').addEventListener('input',function(){renderEx()});
 function renderPm(list){
   var inc=$x('xPmSrc').value==='all',pro=list.filter(function(c){return cCls(c.csat)==='P'||nCls(c.nps)==='P'}),withMsg=pro.map(function(c){return{c:c,m:(c.cm||(inc?c.ver:'')||'').replace(/\s+/g,' ').trim(),k:c.cm?'Comentario de la encuesta':'Verbatim del caso'}}).filter(function(x){return x.m.length>=5});
   withMsg.sort(function(a,b){var sa=(cCls(a.c.csat)==='P'?1:0)+(nCls(a.c.nps)==='P'?1:0),sb=(cCls(b.c.csat)==='P'?1:0)+(nCls(b.c.nps)==='P'?1:0);return sb-sa||((b.c.nps||0)+(b.c.csat||0))-((a.c.nps||0)+(a.c.csat||0))||Math.min(b.m.length,300)-Math.min(a.m.length,300)});
