@@ -130,17 +130,49 @@ tr.mu td{color:var(--mu)}
 :root[data-theme="dark"] .cht text.on{fill:#0c1a1f}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+(function(){
+var K='ccc_people_v1',G=[],SEP={},M={};
+try{var s0=JSON.parse(localStorage.getItem(K)||'{}');G=s0.g||[];SEP=s0.sep||{}}catch(e){}
+function cl(v){return String(v==null?'':v).replace(/[\s\u00a0]+/g,' ').trim()}
+function nk(v){return cl(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9 ]/g,'').replace(/\s+/g,' ').trim()}
+function tk(v){return nk(v).split(' ').filter(function(x){return x.length>1})}
+function lev(a,b){var p=[],i,j;for(j=0;j<=b.length;j++)p[j]=j;for(i=1;i<=a.length;i++){var c=[i];for(j=1;j<=b.length;j++)c[j]=Math.min(p[j]+1,c[j-1]+1,p[j-1]+(a[i-1]===b[j-1]?0:1));p=c}return p[b.length]}
+function te(a,b){return a===b||(Math.min(a.length,b.length)>=6&&Math.abs(a.length-b.length)<=1&&lev(a,b)<=1)}
+function st(ta,tb){if(!ta.length||!tb.length)return false;var sh=ta.filter(function(x){return tb.some(function(y){return te(x,y)})}).length,m=Math.min(ta.length,tb.length);return sh>=2&&sh>=Math.ceil(m*.75)}
+function pretty(r){return(r===r.toUpperCase()||r===r.toLowerCase())?r.toLowerCase().replace(/(^|\s)\S/g,function(c){return c.toUpperCase()}):r}
+function best(g){var a=g.a.slice().sort(function(x,y){return tk(y).length-tk(x).length||y.length-x.length});return pretty(a[0])}
+function save(){try{localStorage.setItem(K,JSON.stringify({g:G,sep:SEP}))}catch(e){}M={}}
+function find(r){var k=nk(r);for(var i=0;i<G.length;i++)if(G[i].a.some(function(x){return nk(x)===k}))return G[i];return null}
+function canon(raw,src){var r=cl(raw);if(!r||/^sin /i.test(r))return r;if(M[r])return M[r];var g=find(r),k=nk(r);
+ if(!g&&!SEP[k]){var t=tk(r);for(var i=0;i<G.length&&!g;i++)if(G[i].a.some(function(x){return st(tk(x),t)}))g=G[i];if(g){g.a.push(r);if(!g.lock)g.d=best(g);save()}}
+ if(!g){g={d:pretty(r),a:[r],s:{}};G.push(g);save()}
+ if(src&&!(g.s=g.s||{})[src]){g.s[src]=1;save()}
+ return M[r]=g.d}
+function emit(){window.dispatchEvent(new Event('people-changed'))}
+window.__P={canon:canon,same:function(a,b){return canon(a)===canon(b)},list:function(){return G.slice().sort(function(a,b){return a.d.localeCompare(b.d)})},
+ split:function(al){var g=find(al);if(!g||g.a.length<2)return;g.a=g.a.filter(function(x){return nk(x)!==nk(al)});if(!g.lock)g.d=best(g);G.push({d:pretty(cl(al)),a:[cl(al)],s:g.s||{}});SEP[nk(al)]=1;save();emit()},
+ merge:function(dA,dB){var a=G.filter(function(g){return g.d===dA})[0],b=G.filter(function(g){return g.d===dB})[0];if(!a||!b||a===b)return;a.a.forEach(function(x){b.a.push(x);delete SEP[nk(x)]});Object.keys(a.s||{}).forEach(function(k){(b.s=b.s||{})[k]=1});G.splice(G.indexOf(a),1);if(!b.lock)b.d=best(b);save();emit()},
+ reset:function(){G=[];SEP={};save();emit()}};
+})();
+</script>
 </head>
 <body>
 <div class="wrap">
   <nav class="nav" role="tablist" aria-label="Secciones">
-  <button type="button" role="tab" id="tA" aria-selected="false">Análisis del reporte de casos</button>
-  <button type="button" role="tab" id="tM" aria-selected="false">Matriz de calidad</button>
-  <button type="button" role="tab" id="tB" aria-selected="false">Calculadora NPS y CSAT</button>
-  <button type="button" role="tab" id="tAc" aria-selected="false">Acuracidad</button>
-  <button type="button" role="tab" id="tLeads" aria-selected="true">LEADS</button>
-  <button type="button" role="tab" id="tGer" aria-selected="false">Resumen gerencial</button>
+<div class="brand">Analítica CCC<small>Atención · NPS · Calidad · Leads</small></div>
+<div class="navgrp">Atención y calidad</div>
+<button type="button" role="tab" id="tA" aria-selected="false">Análisis del reporte de casos</button>
+<button type="button" role="tab" id="tM" aria-selected="false">Matriz de calidad</button>
+<button type="button" role="tab" id="tB" aria-selected="false">Calculadora NPS y CSAT</button>
+<button type="button" role="tab" id="tAc" aria-selected="false">Acuracidad</button>
+<div class="navgrp">Ventas</div>
+<button type="button" role="tab" id="tLeads" aria-selected="true">LEADS</button>
+<div class="navgrp">Equipo</div>
 <button type="button" role="tab" id="tProd" aria-selected="false">Productividad</button>
+<button type="button" role="tab" id="tPeople" aria-selected="false">Personas</button>
+<div class="navgrp">Gestión</div>
+<button type="button" role="tab" id="tGer" aria-selected="false">Resumen gerencial</button>
 </nav>
 <div id="vAn" hidden>
   <header>
@@ -467,10 +499,19 @@ tr.mu td{color:var(--mu)}
   <div class="card"><h2>Detalle por equipo: tipo de caso</h2><div class="tw"><table id="pdTTipo"></table></div></div>
 </div>
 </div>
+<div id="vPeople" hidden>
+<header><div><h1>Personas</h1><p>Un mismo agente puede aparecer con el nombre escrito distinto en cada base. Aquí ves cómo se unificaron, para que todas las hojas lo cuenten como una sola persona. Si dos nombres no son la misma persona, sepáralos; si falta unir alguno, únelos a mano.</p></div></header>
+<div class="stats" id="ppKpi" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))"></div>
+<div class="card"><h2>Personas detectadas</h2><p class="sub">Los nombres se comparan sin importar mayúsculas, tildes ni el orden, y toleran una letra de diferencia. Se aprende de las bases que cargues en cualquier hoja.</p><div class="tw"><table id="ppT"></table></div></div>
+<div class="card"><h2>Unir manualmente</h2><p class="sub">Pasa todas las variantes de una persona a otra. Se aplica de inmediato en todas las hojas.</p><div class="row row2" style="grid-template-columns:1fr 1fr auto;align-items:end"><div><label for="ppA">Persona a unir</label><select id="ppA"></select></div><div><label for="ppB">Unir dentro de</label><select id="ppB"></select></div><button type="button" id="ppMerge" style="background:var(--ac);border-color:var(--ac);color:var(--sf)">Unir</button></div>
+<div class="btns" style="margin-top:12px"><button type="button" id="ppReset">Restablecer unificación</button></div><p class="mu" id="ppMsg" role="status" style="margin:8px 0 0"></p></div>
+</div>
 <div id="vGer" hidden>
  <header><div><h1>Resumen gerencial</h1><p>Consolidado de indicadores, cumplimiento de metas, acuerdos y plan de acción SMART.</p></div></header>
  <div class="card"><h2>Resultados por agente</h2><p class="sub">Elige un especialista para traer sus resultados de NPS, CSAT, Acuracidad y Leads desde las demás pestañas (carga primero las bases). “Todo el equipo” usa el consolidado.</p><div class="row row2"><div><label for="gmAgent">Especialista</label><select id="gmAgent"><option value="">Todo el equipo</option></select></div><div style="align-self:end"><button type="button" id="gmLoad">Actualizar datos</button></div></div></div>
- <div class="card"><h2>Resultado vs meta y qué aplica al plan</h2><p class="sub">Los indicadores bajo la meta aplican al plan de acción, ordenados por la brecha más grande. Los que cumplen quedan en seguimiento.</p><div id="gmChart"></div><div class="tw" style="margin-top:12px"><table id="gmEval"></table></div></div>
+ <div class="card"><h2>Resultado vs meta y qué aplica al plan</h2><p class="sub">Marca qué indicadores van al plan de acción y al acta. Por defecto van los que están bajo la meta, ordenados por la brecha más grande; puedes sumar los que cumplen si quieres darles seguimiento.</p><div id="gmChart"></div><div class="btns" style="margin:12px 0 4px;align-items:center"><b style="font-size:.9rem">¿Qué indicadores van al plan de acción y al acta?</b><button type="button" id="plAll">Todos</button><button type="button" id="plBad">Solo los que no cumplen</button><button type="button" id="plNone">Ninguno</button></div>
+    <div class="tw"><table id="gmEval"></table></div></div>
+ <div class="card"><h2>Contexto de productividad</h2><p class="sub">Trae el trabajo del especialista desde la hoja Productividad (reporte del Tipificador), como apoyo al análisis. No tiene meta.</p><div class="tw"><table id="gmProd"></table></div></div>
  <div class="card"><h2>Periodo y responsable</h2><div class="row row2">
   <div><label for="gmPeriod">Periodo evaluado</label><input id="gmPeriod" placeholder="Ej. Octubre 2026"></div>
   <div><label for="gmLeader">Líder responsable</label><input id="gmLeader" placeholder="Nombre del líder"></div>
@@ -510,6 +551,23 @@ tr.mu td{color:var(--mu)}
 .bc .mt{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink)}
 .bc .lb{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bc .vl{text-align:right;font-weight:700}
 .lg{font-size:12px;color:var(--mu);margin-top:6px}
+@media (min-width:1100px){
+body{padding-left:264px}
+.wrap{max-width:1640px;padding:0 40px 64px}
+.nav{position:fixed;left:0;top:0;bottom:0;width:264px;margin:0;padding:22px 14px;flex-direction:column;flex-wrap:nowrap;gap:3px;overflow-y:auto;background:var(--sf);border-right:1px solid var(--ln);z-index:30}
+.nav button{width:100%;text-align:left;border:0;background:transparent;padding:10px 12px;border-radius:10px;font-weight:600}
+.nav button:hover{background:var(--sh)}
+.nav button[aria-selected="true"]{background:var(--ac);color:var(--sf)}
+.brand{font:800 1.2rem 'Bricolage Grotesque',Figtree,system-ui,sans-serif;padding:2px 10px 12px;line-height:1.2}
+.brand small{display:block;font:500 .76rem Figtree,system-ui,sans-serif;color:var(--mu);margin-top:3px}
+.navgrp{font:700 .7rem Figtree,system-ui,sans-serif;letter-spacing:.09em;text-transform:uppercase;color:var(--mu);padding:16px 10px 4px}
+header{position:sticky;top:0;z-index:12;background:var(--bg);padding:14px 0 12px;margin-bottom:18px;border-bottom:1px solid var(--ln)}
+header p{max-width:90ch}
+.card{padding:22px 24px}
+}
+@media (max-width:1099px){.brand,.navgrp{display:none}}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--sh);border:1px solid var(--ln);border-radius:99px;padding:3px 6px 3px 10px;margin:2px 4px 2px 0;font-size:.85rem}
+.chip button{padding:1px 8px;font-size:.75rem;border-radius:99px}
 </style>
 <script>
 (function(){
@@ -590,7 +648,7 @@ tr.mu td{color:var(--mu)}
   let cur=$('ldActaEsp').value,names=[...new Set(leads.map(r=>String(r['Case Owner']||'').trim()).filter(Boolean))].sort();
   $('ldActaEsp').innerHTML='<option value="">Todo el equipo</option>'+names.map(x=>'<option value="'+esc(x)+'">'+esc(x)+'</option>').join('');$('ldActaEsp').value=names.includes(cur)?cur:($('ldAgent').value||'');actaR();charts(rows,m);
  }
- $('ldMeta').addEventListener('input',render);$('ldOppMode').addEventListener('change',render);$('ldActaEsp').addEventListener('change',actaR);
+ $('ldMeta').addEventListener('input',render);window.addEventListener('people-changed',()=>{if(!leads.length)return;leads.forEach(r=>{r['Case Owner']=window.__P.canon(r._co,'Leads')});options('ldAgent','Case Owner',leads);render()});$('ldOppMode').addEventListener('change',render);$('ldActaEsp').addEventListener('change',actaR);
  $('ldPlan').addEventListener('input',()=>{localStorage.setItem('ccc_ld_plan_'+$('ldActaEsp').value,$('ldPlan').value);actaR()});
  $('ldSug').addEventListener('click',()=>{$('ldPlan').value=plan($('ldActaEsp').value);localStorage.setItem('ccc_ld_plan_'+$('ldActaEsp').value,$('ldPlan').value);actaR()});
  $('ldCopy').addEventListener('click',()=>navigator.clipboard.writeText(actaT()).then(()=>$('ldActaMsg').textContent='Acta copiada.').catch(()=>$('ldActaMsg').textContent='No se pudo copiar.'));
@@ -643,7 +701,7 @@ tr.mu td{color:var(--mu)}
       const hasMetric=String(cellAt(row,'Sales Chances')).trim()!==''||String(cellAt(row,'Link Sent')).trim()!=='';
       return hasId&&hasMetric;
     });
-    leads=dataRows.map(row=>{let o={};cols.forEach(c=>{let ci=headerMap[c];o[c]=ci===undefined?'':(row[ci]===undefined?'':clean(row[ci]))});return o});
+    leads=dataRows.map(row=>{let o={};cols.forEach(c=>{let ci=headerMap[c];o[c]=ci===undefined?'':(row[ci]===undefined?'':clean(row[ci]))});o._co=o['Case Owner'];o['Case Owner']=window.__P.canon(o._co,'Leads');return o});
     if(!leads.length)throw Error('Encontré los encabezados en la fila '+(headerIndex+1)+', pero no hay registros debajo.');
     [['ldAgent','Case Owner'],['ldBrand','Marca'],['ldSystem','Sistema'],['ldCountry','País'],['ldChannel','Canal'],['ldGroup','Group'],['ldType','Tipo']].forEach(([id,key])=>options(id,key,leads));
     $('ldResults').hidden=false;
@@ -671,7 +729,7 @@ tr.mu td{color:var(--mu)}
  /* ===== resumen gerencial por agente ===== */
  let GD=[],lastAuto='';
  const GDEF={'NPS':'Reforzar el cierre con resumen de lo resuelto y seguimiento proactivo en casos con riesgo de detractor.','CSAT':'Responder dentro del SLA con empatía y confirmar la resolución antes de cerrar.','Acuracidad Sprinklr':'Revisar los casos con error en Sprinklr y dar retroalimentación semanal.','Acuracidad GCCP':'Revisar los casos con error en GCCP y dar retroalimentación semanal.','Acuracidad EA':'Verificar el registro correcto de eventos adversos (EA) antes de cerrar.','Acuracidad PQC':'Verificar el registro correcto de reclamos de calidad (PQC) antes de cerrar.','LEADS':'Enviar el link de compra en toda oportunidad detectada y revisar a diario las pendientes.'};
- const sm=(a,b)=>{const N=window.__npsAgent;return N&&N.same?N.same(a,b):norm(a)===norm(b)};
+ const sm=(a,b)=>window.__P.same(a,b);window.addEventListener('people-changed',()=>{try{gerRefresh()}catch(e){}});
  function gNames(){const o=[],add=n=>{n=String(n||'').replace(/\u00a0/g,' ').trim();if(n&&n!=='Sin especialista'&&!o.some(x=>sm(x,n)))o.push(n)};try{const N=window.__npsAgent;if(N&&N.has&&N.has())N.names().forEach(add)}catch(e){}try{const A=window.__ac;if(A&&A.rows)A.rows().forEach(c=>add(c.esp))}catch(e){}leads.forEach(r=>add(r['Case Owner']));return o.sort((a,b)=>a.localeCompare(b))}
  function agentData(n){const N=window.__npsAgent,X=window.__x,A=window.__ac,out=[];let r=null;
   try{if(N&&N.has&&N.has()){if(n){const st=N.stats(n);r=st&&st.r}else r=X.calc(X.allCurrent())}}catch(e){}
@@ -680,8 +738,13 @@ tr.mu td{color:var(--mu)}
   ['soc','gccp','ae','pqc'].forEach(k=>{const x=I&&I[k];out.push({v:x&&x.v!=null?x.v:null,d:x&&x.n?(x.n-x.e)+' de '+x.n+' sin error':''})});
   const m=metric(n?leads.filter(r=>sm(r['Case Owner'],n)):leads);out.push({v:leads.length&&m.opp?m.rate:null,d:leads.length?m.sentOpp+' de '+m.opp+' oportunidades con link · '+m.pending+' pendientes':''});return out}
  function gerRows(){return [...document.querySelectorAll('#gmTable tbody tr')].map((tr,i)=>{const s=tr.querySelector('.gmVal').value,g=Number(tr.querySelector('.gmGoal').value),v=s===''?null:Number(s);return{i,name:tr.cells[0].textContent,v,g,gap:v==null?null:Math.round((g-v)*10)/10,d:(GD[i]||{}).d||''}})}
- function gerEval(){setTimeout(()=>{try{skRender()}catch(e){}},0);const R=gerRows(),off=R.filter(x=>x.v!=null&&x.v<x.g).sort((a,b)=>b.gap-a.gap),pr={};off.forEach((x,k)=>pr[x.i]=k+1);
-  $('gmEval').innerHTML='<tr><th>Indicador</th><th>Resultado</th><th>Meta</th><th>Brecha</th><th>¿Aplica a plan / seguimiento?</th><th>Detalle</th></tr>'+R.map(x=>'<tr><td>'+esc(x.name)+'</td><td>'+(x.v==null?'–':x.v+'%')+'</td><td>'+x.g+'%</td><td>'+(x.gap==null?'–':x.gap>0?x.gap+' pp':'+'+(-x.gap)+' pp')+'</td><td>'+(x.v==null?'<span class="mu">Sin datos: carga la base en su pestaña</span>':x.v<x.g?'<b style="color:var(--det)">Sí · prioridad '+pr[x.i]+'</b>':'<span style="color:var(--pro)">No · cumple (seguimiento)</span>')+'</td><td>'+esc(x.d)+'</td></tr>').join('');
+ function gerProdData(){const D=(window.__prod&&window.__prod.rows())||[],n=$('gmAgent').value,m=n?D.filter(r=>sm(r.u,n)):D;if(!m.length)return null;
+  const top=f=>{const o={};m.forEach(r=>{const k=f(r);o[k]=(o[k]||0)+1});const a=Object.entries(o).sort((x,y)=>y[1]-x[1])[0];return a?a[0]+' ('+Math.round(a[1]/m.length*100)+'%)':'–'},days=new Set(m.map(r=>r.f).filter(Boolean)).size||1;
+  return[['Gestiones registradas',m.length],['Casos únicos',new Set(m.filter(r=>r.id).map(r=>r.id)).size],['Promedio de gestiones por día trabajado',(m.length/days).toFixed(1)+' ('+days+' días)'],['Tipo de caso principal',top(r=>r.tipo)],['Gestión más frecuente',top(r=>r.g)],['Equipo principal',top(r=>r.team)]]}
+ function gerProd(){const d=gerProdData();$('gmProd').innerHTML=d?'<tr><th>Indicador de apoyo</th><th>Valor</th></tr>'+d.map(x=>'<tr><td>'+esc(x[0])+'</td><td><b>'+esc(x[1])+'</b></td></tr>').join(''):'<tr><td class="mu">Sin datos: carga el Tipificador en la hoja Productividad'+($('gmAgent').value?' (o no hay gestiones de este especialista)':'')+'.</td></tr>'}
+ function prodActa(td,th,h,tb){const d=gerProdData();return d?'<h3 '+h+'>Contexto de productividad</h3><table '+tb+'><tr><th '+th+'>Indicador de apoyo</th><th '+th+'>Valor</th></tr>'+d.map(x=>'<tr><td '+td+'>'+esc(x[0])+'</td><td '+td+'><b>'+esc(x[1])+'</b></td></tr>').join('')+'</table>':''}
+ function gerEval(){try{gerProd()}catch(e){}setTimeout(()=>{try{skRender()}catch(e){}},0);const R=gerRows(),off=skOff(),pr={};off.forEach((x,k)=>pr[x.i]=k+1);
+  $('gmEval').innerHTML='<tr><th>Incluir en el plan</th><th>Indicador</th><th>Resultado</th><th>Meta</th><th>Brecha</th><th>¿Aplica a plan / seguimiento?</th><th>Detalle</th></tr>'+R.map(x=>'<tr><td style="text-align:center"><input type="checkbox" data-pl="'+esc(x.name)+'" '+(pr[x.i]?'checked':'')+(x.v==null?' disabled':'')+' style="width:auto" aria-label="Incluir '+esc(x.name)+' en el plan"></td><td>'+esc(x.name)+'</td><td>'+(x.v==null?'–':x.v+'%')+'</td><td>'+x.g+'%</td><td>'+(x.gap==null?'–':x.gap>0?x.gap+' pp':'+'+(-x.gap)+' pp')+'</td><td>'+(x.v==null?'<span class="mu">Sin datos: carga la base en su pestaña</span>':pr[x.i]?'<b style="color:var(--det)">Sí · prioridad '+pr[x.i]+'</b>':x.v<x.g?'<span class="mu">No incluido (bajo la meta)</span>':'<span style="color:var(--pro)">No · cumple (seguimiento)</span>')+'</td><td>'+esc(x.d)+'</td></tr>').join('');
   const c=R.filter(x=>x.v!=null);$('gmChart').innerHTML='';const box=$('gmChart');box.innerHTML=c.length?c.map(x=>{const v=Math.max(0,Math.min(100,x.v));return '<div class="bc"><span class="lb">'+esc(x.name)+'</span><div class="tk"><div class="fl" style="width:'+v+'%;background:'+(x.v>=x.g?'var(--pro)':'var(--det)')+'"></div><i class="mt" style="left:'+Math.min(100,x.g)+'%"></i></div><span class="vl">'+x.v+'%</span></div>'}).join('')+'<p class="lg">La línea negra marca la meta.</p>':'<p class="mu">Elige un especialista o registra resultados para ver el gráfico.</p>'}
  function gerMetrics(){gerMetrics0();gerEval()}
  /* ===== plan SKEP + SMART ===== */
@@ -695,15 +758,19 @@ tr.mu td{color:var(--mu)}
  let SKS={};try{SKS=JSON.parse(localStorage.getItem('ccc_skep_v1')||'{}')}catch(e){}
  const akey=()=>$('gmAgent').value||'__todos',SKF=['behavior','kpi','trend','root','commit','scen','steps','coach','fdate'];
  function skDef(x){const t=SKT[x.name]||{b:x.name,k:x.name,j:'job aid correspondiente',p:'practicar los escenarios del indicador',s:[x.name]};
-  return{behavior:t.b,kpi:t.k,trend:'Resultado de '+x.v+'% frente a la meta de '+x.g+'% (brecha de '+x.gap+' pp'+(x.d?'; '+x.d:'')+'). [Describe aquí, con casos de ejemplo, en cuántos casos se evidencia el comportamiento y cómo impacta el KPI.]',
+  return{behavior:t.b,kpi:t.k,trend:(x.gap>0?'Resultado de '+x.v+'% frente a la meta de '+x.g+'% (brecha de '+x.gap+' pp':'Resultado de '+x.v+'%, por encima de la meta de '+x.g+'% (+'+(-x.gap)+' pp')+(x.d?'; '+x.d:'')+'). [Describe aquí, con casos de ejemplo, el comportamiento observado y cómo impacta el KPI.]',
   root:'[Hipótesis a validar con el asociado en el coaching] Posible bajo uso de la base de conocimiento / '+t.j+' por no ubicar el escenario o la guía a seguir, lo que lleva a no aplicar el proceso de forma consistente.',
-  commit:'De aquí en adelante me comprometo a mejorar «'+t.b.toLowerCase()+'» siguiendo el '+t.j+' (Job Aid / Artículo XXXX), para llegar a ≥ '+x.g+'% en '+t.k+' identificando con claridad lo que requiere cada escenario. Los escenarios específicos que debo mejorar son:',
+  commit:'De aquí en adelante me comprometo a mejorar «'+t.b.toLowerCase()+'» siguiendo el '+t.j+' (Job Aid / Artículo XXXX), para '+(x.gap>0?'llegar a':'sostener')+' ≥ '+x.g+'% en '+t.k+' identificando con claridad lo que requiere cada escenario. Los escenarios específicos que debo mejorar son:',
   scen:t.s.join('\n'),
   steps:['Abrir la base de conocimiento al inicio del turno y revisar el '+t.j+'. Mi coach verificará diariamente que esto ocurre mediante walking management y monitoreo de casos.','Los números de artículos y job aids estarán disponibles en el tablero del equipo (One Team) como guía de acceso rápido.','Usaré One Team para comunicarme y pedir apoyo si no encuentro la información en la herramienta.','Revisaré las novedades de la pestaña de inicio al comenzar el turno para mantenerme actualizado en cambios de políticas y procedimientos.','Tendré una sesión de Skill Transfer / Demostración con mi coach (30 min, una vez por semana durante las próximas 2 semanas) para '+t.p+'.'].join('\n'),
   coach:'Mi coach revisará de 3 a 5 casos por semana para confirmar que estas acciones se aplican de forma consistente.\nMi coach hará seguimiento conmigo durante las próximas 2 semanas, a partir de la fecha de inicio indicada.',
   fdate:new Date(Date.now()+86400000).toISOString().slice(0,10)}}
  const skVals=x=>Object.assign(skDef(x),(SKS[akey()]||{})[x.name]||{});
- const skOff=()=>gerRows().filter(x=>x.v!=null&&x.v<x.g).sort((a,b)=>b.gap-a.gap);
+ let SEL={};try{SEL=JSON.parse(localStorage.getItem('ccc_plansel_v1')||'{}')}catch(e){}
+ const isSel=x=>{const m=SEL[akey()];return x.v!=null&&((m&&x.name in m)?m[x.name]:x.v<x.g)};
+ const skOff=()=>gerRows().filter(isSel).sort((a,b)=>b.gap-a.gap);
+ const saveSel=()=>{try{localStorage.setItem('ccc_plansel_v1',JSON.stringify(SEL))}catch(e){}};
+ function setSel(mode){const m=SEL[akey()]={};gerRows().forEach(x=>{if(x.v!=null)m[x.name]=mode==='all'?true:mode==='none'?false:x.v<x.g});saveSel();gerEval();prev()}
  function skRender(){const off=skOff();$('skRows').innerHTML=off.length?off.map((x,n)=>{const v=skVals(x),ta=(f,r,l)=>'<label>'+l+'</label><textarea data-sn="'+esc(x.name)+'" data-sf="'+f+'" rows="'+r+'" style="width:100%">'+esc(v[f])+'</textarea>';
    return '<div style="border:1px solid var(--ln);border-radius:10px;padding:12px;margin:12px 0"><b>'+esc(x.name)+'</b> <span class="mu">· prioridad '+(n+1)+' · '+x.v+'% vs meta '+x.g+'% (brecha '+x.gap+' pp)</span>'+
    '<div class="row row2"><div><label>Behavior (comportamiento)</label><input data-sn="'+esc(x.name)+'" data-sf="behavior" value="'+esc(v.behavior)+'"></div><div><label>KPI</label><input data-sn="'+esc(x.name)+'" data-sf="kpi" value="'+esc(v.kpi)+'"></div></div>'+
@@ -727,6 +794,7 @@ tr.mu td{color:var(--mu)}
   const txt=w.length?'Resultados de '+(n||'todo el equipo')+': cumple '+ok.length+' de '+w.length+' indicadores con datos.\nFortalezas: '+(ok.length?ok.map(x=>x.name+' ('+x.v+'%)').join(', '):'ninguna por ahora')+'.\nBrechas prioritarias: '+(off.length?off.map(x=>x.name+' ('+x.v+'% vs '+x.g+'%, brecha '+x.gap+' pp)').join('; '):'ninguna')+'.\nIndicadores sin datos: '+(R.filter(x=>x.v==null).map(x=>x.name).join(', ')||'ninguno')+'.':'';
   if(!A.value||A.value===lastAuto){A.value=txt;lastAuto=txt}}
  function gerRefresh(){const c=$('gmAgent').value,N=gNames();$('gmAgent').innerHTML='<option value="">Todo el equipo</option>'+N.map(x=>'<option value="'+esc(x)+'">'+esc(x)+'</option>').join('');$('gmAgent').value=N.includes(c)?c:'';gerLoad()}
+ $('plAll').addEventListener('click',()=>setSel('all'));$('plBad').addEventListener('click',()=>setSel('bad'));$('plNone').addEventListener('click',()=>setSel('none'));$('gmEval').addEventListener('change',e=>{const n=e.target.getAttribute('data-pl');if(!n)return;(SEL[akey()]=SEL[akey()]||{})[n]=e.target.checked;saveSel();gerEval();prev()});
  $('gmAgent').addEventListener('change',gerLoad);$('gmLoad').addEventListener('click',gerRefresh);$('tGer').addEventListener('click',gerRefresh);
  $('gmPlanOld').addEventListener('click',()=>{const n=$('gmAgent').value,R=gerRows(),off=R.filter(x=>x.v!=null&&x.v<x.g).sort((a,b)=>b.gap-a.gap),dt=new Date(Date.now()+30*86400000).toISOString().slice(0,10);$('gmSmart').innerHTML='';
   if(!off.length){addAction({focus:'Seguimiento',action:'Mantener los resultados actuales y reconocer las buenas prácticas del agente.',measure:'Revisión mensual de los indicadores con datos.',owner:n||'Líder / responsable designado',date:dt});return}
@@ -750,16 +818,16 @@ tr.mu td{color:var(--mu)}
  /* ===== acta gerencial con tablas ===== */
  const fmtD=(s)=>{const d=s?new Date(s+'T00:00:00'):new Date();return d.toLocaleDateString('es-CO',{day:'2-digit',month:'2-digit',year:'numeric'})};
  function actaHtml(){
-  const d=collect(),R=gerRows(),off=R.filter(x=>x.v!=null&&x.v<x.g).sort((a,b)=>b.gap-a.gap),pr={};off.forEach((x,k)=>pr[x.i]=k+1);
-  const w=R.filter(x=>x.v!=null),ok=w.filter(x=>x.v>=x.g),sin=R.filter(x=>x.v==null),G='#1c8a5a',D='#c4402f',
+  const d=collect(),R=gerRows(),off=skOff(),pr={};off.forEach((x,k)=>pr[x.i]=k+1);
+  const w=R.filter(x=>x.v!=null),ok=w.filter(x=>x.v>=x.g),sin=R.filter(x=>x.v==null),bad=w.filter(x=>x.v<x.g).sort((a,b)=>b.gap-a.gap),G='#1c8a5a',D='#c4402f',
    td='style="border:1px solid #b9c6cb;padding:6px 8px;vertical-align:top;font-size:13px"',th='style="border:1px solid #b9c6cb;padding:6px 8px;background:#0f6b6b;color:#fff;text-align:left;font-size:13px"',
    h='style="margin:18px 0 6px;font-size:15px;color:#0f6b6b;font-family:Arial,sans-serif"',tb='style="border-collapse:collapse;width:100%;font-family:Arial,sans-serif"';
-  const an=x=>x.v==null?'Sin datos cargados; cargar la base para evaluarlo.':x.v<x.g?'Por debajo de la meta por '+x.gap+' pp'+(x.d?' ('+x.d+')':'')+'. Prioridad '+pr[x.i]+' del plan. '+(GDEF[x.name]||''):'Cumple la meta con '+Math.round((x.v-x.g)*10)/10+' pp de margen'+(x.d?' ('+x.d+')':'')+'. Se mantiene en seguimiento.';
+  const an=x=>x.v==null?'Sin datos cargados; cargar la base para evaluarlo.':pr[x.i]?(x.v<x.g?'Por debajo de la meta por '+x.gap+' pp':'Cumple la meta')+(x.d?' ('+x.d+')':'')+'. Prioridad '+pr[x.i]+' del plan. '+(GDEF[x.name]||''):x.v<x.g?'Por debajo de la meta por '+x.gap+' pp'+(x.d?' ('+x.d+')':'')+'. No se incluyó en el plan.':'Cumple la meta con '+Math.round((x.v-x.g)*10)/10+' pp de margen'+(x.d?' ('+x.d+')':'')+'. Se mantiene en seguimiento.';
   let o='<div style="font-family:Arial,sans-serif;color:#10242b"><h2 style="margin:0 0 8px;font-size:20px;color:#0f6b6b">Seguimiento de indicadores — Acta gerencial</h2>';
   o+='<table '+tb+'><tr><td '+td+'><b>Especialista</b><br>'+esc(d.agent||'Todo el equipo')+'</td><td '+td+'><b>Periodo</b><br>'+esc(d.period||'—')+'</td><td '+td+'><b>Líder responsable</b><br>'+esc(d.leader||'—')+'</td><td '+td+'><b>Fecha del acta</b><br>'+fmtD()+'</td></tr></table>';
   o+='<h3 '+h+'>1. Resumen ejecutivo</h3><table '+tb+'><tr><td '+td+'><b style="font-size:20px">'+w.length+'</b><br>Indicadores evaluados</td><td '+td+'><b style="font-size:20px;color:'+G+'">'+ok.length+'</b><br>Cumplen la meta</td><td '+td+'><b style="font-size:20px;color:'+(off.length?D:G)+'">'+off.length+'</b><br>Aplican a plan de acción</td><td '+td+'><b style="font-size:20px">'+sin.length+'</b><br>Sin datos</td></tr></table>';
-  o+='<p style="font-size:13px;margin:8px 0 0">'+(w.length?(off.length?'La brecha más grande está en <b>'+esc(off[0].name)+'</b> ('+off[0].v+'% frente a la meta de '+off[0].g+'%, '+off[0].gap+' pp).':'Todos los indicadores con datos cumplen la meta.'):'Aún no hay indicadores con datos.')+'</p>';
-  o+='<h3 '+h+'>2. Resultados y análisis por indicador</h3><table '+tb+'><tr><th '+th+'>Indicador</th><th '+th+'>Resultado</th><th '+th+'>Meta</th><th '+th+'>Brecha</th><th '+th+'>Estado</th><th '+th+'>¿Aplica a plan de acción?</th><th '+th+'>Análisis</th></tr>'+R.map(x=>'<tr><td '+td+'><b>'+esc(x.name)+'</b></td><td '+td+'>'+(x.v==null?'–':x.v+'%')+'</td><td '+td+'>'+x.g+'%</td><td '+td+'>'+(x.gap==null?'–':x.gap>0?x.gap+' pp':'+'+(-x.gap)+' pp')+'</td><td '+td+'><b style="color:'+(x.v==null?'#667':x.v>=x.g?G:D)+'">'+(x.v==null?'Sin datos':x.v>=x.g?'Cumple':'No cumple')+'</b></td><td '+td+'>'+(x.v==null?'Pendiente de datos':x.v<x.g?'<b style="color:'+D+'">Sí · prioridad '+pr[x.i]+'</b>':'No · seguimiento')+'</td><td '+td+'>'+esc(an(x))+'</td></tr>').join('')+'</table>';
+  o+='<p style="font-size:13px;margin:8px 0 0">'+(w.length?(bad.length?'La brecha más grande está en <b>'+esc(bad[0].name)+'</b> ('+bad[0].v+'% frente a la meta de '+bad[0].g+'%, '+bad[0].gap+' pp).':'Todos los indicadores con datos cumplen la meta.'):'Aún no hay indicadores con datos.')+'</p>';
+  o+=prodActa(td,th,h,tb);o+='<h3 '+h+'>2. Resultados y análisis por indicador</h3><table '+tb+'><tr><th '+th+'>Indicador</th><th '+th+'>Resultado</th><th '+th+'>Meta</th><th '+th+'>Brecha</th><th '+th+'>Estado</th><th '+th+'>¿Aplica a plan de acción?</th><th '+th+'>Análisis</th></tr>'+R.map(x=>'<tr><td '+td+'><b>'+esc(x.name)+'</b></td><td '+td+'>'+(x.v==null?'–':x.v+'%')+'</td><td '+td+'>'+x.g+'%</td><td '+td+'>'+(x.gap==null?'–':x.gap>0?x.gap+' pp':'+'+(-x.gap)+' pp')+'</td><td '+td+'><b style="color:'+(x.v==null?'#667':x.v>=x.g?G:D)+'">'+(x.v==null?'Sin datos':x.v>=x.g?'Cumple':'No cumple')+'</b></td><td '+td+'>'+(x.v==null?'Pendiente de datos':pr[x.i]?'<b style="color:'+D+'">Sí · prioridad '+pr[x.i]+'</b>':'No · seguimiento')+'</td><td '+td+'>'+esc(an(x))+'</td></tr>').join('')+'</table>';
   const ac=d.actions.filter(a=>Object.values(a).some(v=>String(v).trim()));
   o+=skActa(off,ac,td,th,h,tb);
   o+='<h3 '+h+'>4. Conclusiones y acuerdos</h3><table '+tb+'><tr><td '+td+'>'+(d.agreements.trim()?esc(d.agreements).replace(/\n/g,'<br>'):'Sin conclusiones registradas.')+'</td></tr></table>';
@@ -1160,8 +1228,8 @@ var dz=$a('drop');
 ['dragleave','drop'].forEach(function(ev){dz.addEventListener(ev,function(e){e.preventDefault();dz.classList.remove('on')})});
 dz.addEventListener('drop',function(e){handle(e.dataTransfer.files[0])});
 $a('fAg').addEventListener('change',render);$a('fRi').addEventListener('change',render);$a('csv').addEventListener('click',csv);
-function tab(n){['vAn','vMx','vCalc','vAc','vLeads','vGer','vProd'].forEach(function(id,i){$a(id).hidden=i!==n});['tA','tM','tB','tAc','tLeads','tGer','tProd'].forEach(function(id,i){$a(id).setAttribute('aria-selected',i===n)})}
-$a('tA').addEventListener('click',function(){tab(0)});$a('tM').addEventListener('click',function(){tab(1)});$a('tB').addEventListener('click',function(){tab(2)});$a('tAc').addEventListener('click',function(){tab(3)});$a('tLeads').addEventListener('click',function(){tab(4)});$a('tGer').addEventListener('click',function(){tab(5)});$a('tProd').addEventListener('click',function(){tab(6)});
+function tab(n){['vAn','vMx','vCalc','vAc','vLeads','vGer','vProd','vPeople'].forEach(function(id,i){$a(id).hidden=i!==n});['tA','tM','tB','tAc','tLeads','tGer','tProd','tPeople'].forEach(function(id,i){$a(id).setAttribute('aria-selected',i===n)})}
+$a('tA').addEventListener('click',function(){tab(0)});$a('tM').addEventListener('click',function(){tab(1)});$a('tB').addEventListener('click',function(){tab(2)});$a('tAc').addEventListener('click',function(){tab(3)});$a('tLeads').addEventListener('click',function(){tab(4)});$a('tGer').addEventListener('click',function(){tab(5)});$a('tProd').addEventListener('click',function(){tab(6)});$a('tPeople').addEventListener('click',function(){tab(7)});
 // Mostrar LEADS al entrar por primera vez para que el cargador quede a la vista.
 tab(4);
 function re(){if(LAST){try{D=analyze(LAST);render()}catch(e){}}}
@@ -1256,7 +1324,7 @@ function put(source,list){
   L.sources[source].cases=target;
   save();
 }
-function allCases(source){return Object.keys(L.sources[source].cases).map(function(k){return L.sources[source].cases[k]}).filter(function(c){return !!c.day})}
+function allCases(source){return Object.keys(L.sources[source].cases).map(function(k){var c=L.sources[source].cases[k];if(c.ag0===undefined)c.ag0=c.ag;c.ag=window.__P.canon(c.ag0,'NPS y CSAT');return c}).filter(function(c){return !!c.day})}
 function allCurrent(){return allCases('GCCP').concat(allCases('Sprinklr'))}
 function sourceDays(source){var days=[];Object.keys(L.sources[source].cases).forEach(function(k){var d=L.sources[source].cases[k].day;if(d&&days.indexOf(d)<0)days.push(d)});days.sort();return days}
 function dateLabel(source){var days=sourceDays(source);if(!days.length)return'–';if(days.length===1)return fday(days[0]);return fday(days[0])+' – '+fday(days[days.length-1])}
@@ -1791,6 +1859,7 @@ function agentStats(name){
 }
 function agentNames(){var m={},o=[];allCurrent().forEach(function(c){var k=specKey(c);if(k!=='__sin__'&&!m[k]){m[k]=1;o.push(agName(c))}});return o.sort(function(a,b){return a.localeCompare(b)})}
 function pingActa(){try{if(window.__ac&&window.__ac.refreshActa)window.__ac.refreshActa()}catch(e){}}
+window.addEventListener('people-changed',function(){try{fillAgents(allCurrent());render()}catch(e){}});
 window.__npsAgent={has:hasAnySource,stats:agentStats,names:agentNames,same:sameName,META_N:META_N,META_C:META_C};
 refreshDay();render();updateState();
 window.__x={calc:calc,parseGCCP:parseGCCP,parseSprinklr:parseSprinklr,allCurrent:allCurrent};
@@ -1843,7 +1912,7 @@ function parseBase(aoa){
     var pv=clean(g(C.plat)),plat=/sprinklr/i.test(pv)||(SPK&&!pv)?'Sprinklr':'GCCP';
     var kb=plat==='Sprinklr'?id+'|'+clean(g(C.cre))+'|'+clean(g(C.msg)).slice(0,80):id;occ[kb]=(occ[kb]||0)+1;var rk=plat==='Sprinklr'?kb+'#'+occ[kb]:id;
     var errs=[C.e1,C.e2,C.e3,C.e4].map(function(c){return c>=0?clean(r[c]):''}).filter(Boolean);
-    out.push({id:id,k:rk,plat:plat,day:dkey(d),esp:clean(g(C.esp))||clean(g(C.own))||'Sin especialista',ev:ev,rev:ev!=='',ae:toks.indexOf('MED')>=0||toks.indexOf('AE')>=0||toks.indexOf('EA')>=0,pqc:toks.indexOf('PQC')>=0,errs:errs,ch:(function(v){return norm(v)==='phone call'?'Teléfono':v})(clean(g(C.ch))),brand:clean(g(C.brand)),subj:clean(g(C.subj)),prod:clean(g(C.prod)),ok:clean(g(C.ok)),desc:clean(g(C.desc)),by:clean(g(C.by))});
+    out.push({id:id,k:rk,plat:plat,day:dkey(d),esp:window.__P.canon(clean(g(C.esp))||clean(g(C.own))||'Sin especialista','Acuracidad'),e0:clean(g(C.esp))||clean(g(C.own))||'Sin especialista',ev:ev,rev:ev!=='',ae:toks.indexOf('MED')>=0||toks.indexOf('AE')>=0||toks.indexOf('EA')>=0,pqc:toks.indexOf('PQC')>=0,errs:errs,ch:(function(v){return norm(v)==='phone call'?'Teléfono':v})(clean(g(C.ch))),brand:clean(g(C.brand)),subj:clean(g(C.subj)),prod:clean(g(C.prod)),ok:clean(g(C.ok)),desc:clean(g(C.desc)),by:clean(g(C.by))});
   }
   var canon={};out.forEach(function(c){var k=norm(c.esp);if(!canon[k])canon[k]=c.esp;c.esp=canon[k]});
   return out;
@@ -2363,6 +2432,7 @@ $('acActaAll').addEventListener('click',function(){
   var html=names.map(function(n,i){return'<div'+(i?' style="page-break-before:always"':'')+'>'+actaHtml(actaData(n,$('acActaFb').checked))+'</div>'}).join('');
   dlFile('Actas-Acuracidad-'+stamp()+'.doc',html);actaMsg('Descargadas '+names.length+' actas (especialistas con errores o con NPS/CSAT bajo la meta), una por página.');
 });
+window.addEventListener('people-changed',function(){ROWS.forEach(function(c){c.esp=window.__P.canon(c.e0,'Acuracidad')});try{refreshEsp();render()}catch(e){}});
 window.__ac={parseBase:parseBase,ind:ind,rows:function(){return ROWS},load:function(r){ROWS=[];addRows(r);refreshEsp();render()},rc:rcData,refreshActa:function(){refreshActaEsp();renderActa()},smartDraft:smartDraft,actaData:actaData,actaHtml:actaHtml};
 })();
 </script>
@@ -2381,7 +2451,7 @@ function load(buf){
  const cl=v=>String(v==null?'':v).replace(/\u00a0/g,' ').replace(/\s+/g,' ').trim(),out=[],un={};
  for(let i=1;i<m.length;i++){const r=m[i],u=cl(r[C.u]);if(!u)continue;
   const raw=cl(r[C.id]).replace(/^#\s*/,''),id=/^\d+$/.test(raw)?raw:'',team=!id?'Sin clasificar':id.startsWith('00')?'Tradicional':'Social Media',k=u.toLowerCase();
-  un[k]=un[k]||u;out.push({id,team,tipo:cl(r[C.tipo])||'Sin tipo',est:cl(r[C.est])||'Sin estado',g:cl(r[C.g])||'Sin tipo de gestión',f:cl(r[C.f]).slice(0,10),h:(cl(r[C.hr]).match(/^(\d{1,2}):/)||[])[1],u:un[k]})}
+  un[k]=un[k]||u;out.push({id,team,tipo:cl(r[C.tipo])||'Sin tipo',est:cl(r[C.est])||'Sin estado',g:cl(r[C.g])||'Sin tipo de gestión',f:cl(r[C.f]).slice(0,10),h:(cl(r[C.hr]).match(/^(\d{1,2}):/)||[])[1],u:window.__P.canon(un[k],'Productividad'),u0:un[k]})}
  if(!out.length)throw new Error('No encontré filas con datos.');return out}
 const opts=(id,vals,all)=>{const c=$(id).value;$(id).innerHTML='<option value="">'+all+'</option>'+vals.map(v=>'<option>'+esc(v)+'</option>').join('');$(id).value=vals.includes(c)?c:''};
 const cnt=(rows,f)=>{const m={};rows.forEach(r=>{const k=f(r);m[k]=(m[k]||0)+1});return Object.entries(m).sort((a,b)=>b[1]-a[1])};
@@ -2426,7 +2496,20 @@ function render(){
 }
 $('pdFile').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;$('pdMsg').textContent='Leyendo '+f.name+'…';const fr=new FileReader();
  fr.onload=ev=>{try{D=load(ev.target.result);opts('pdUser',[...new Set(D.map(r=>r.u))].sort(),'Todas');opts('pdTipo',[...new Set(D.map(r=>r.tipo))].sort(),'Todos');$('pdRes').hidden=false;render();$('pdMsg').textContent='Listo: '+D.length+' gestiones cargadas de '+new Set(D.map(r=>r.u)).size+' persona(s).'}catch(err){$('pdMsg').textContent='⚠ '+err.message;$('pdRes').hidden=true}e.target.value=''};fr.readAsArrayBuffer(f)});
-['pdTeam','pdUser','pdTipo'].forEach(i=>$(i).addEventListener('change',render));
+['pdTeam','pdUser','pdTipo'].forEach(i=>$(i).addEventListener('change',render));window.__prod={rows:()=>D};window.addEventListener('people-changed',()=>{if(!D.length)return;D.forEach(r=>{r.u=window.__P.canon(r.u0,'Productividad')});opts('pdUser',[...new Set(D.map(r=>r.u))].sort(),'Todas');render()});
+})();
+</script>
+<script>
+(function(){
+const $=i=>document.getElementById(i),P=window.__P,esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function render(){const g=P.list(),multi=g.filter(x=>x.a.length>1),vars=g.reduce((a,x)=>a+x.a.length-1,0),k=(t,v,s)=>'<div class="kpi"><small>'+t+'</small><b>'+v+'</b>'+(s?'<span class="sm">'+s+'</span>':'')+'</div>';
+ $('ppKpi').innerHTML=k('Personas únicas',g.length,'Según las bases cargadas')+k('Variantes de nombre unificadas',vars,'Nombres distintos que son la misma persona')+k('Personas con variantes',multi.length,'Revísalas en la tabla');
+ $('ppT').innerHTML=g.length?'<tr><th>Persona</th><th>Nombres encontrados</th><th>Aparece en</th></tr>'+g.map(x=>'<tr><td><b>'+esc(x.d)+'</b></td><td>'+x.a.map(a=>'<span class="chip">'+esc(a)+(x.a.length>1?'<button type="button" data-sp="'+esc(a)+'" title="Separar este nombre">Separar</button>':'')+'</span>').join('')+'</td><td>'+esc(Object.keys(x.s||{}).join(' · ')||'—')+'</td></tr>').join(''):'<tr><td class="mu">Aún no hay nombres: carga una base en cualquier hoja.</td></tr>';
+ const o=g.map(x=>'<option>'+esc(x.d)+'</option>').join('');const a=$('ppA').value,b=$('ppB').value;$('ppA').innerHTML=o;$('ppB').innerHTML=o;if(g.some(x=>x.d===a))$('ppA').value=a;if(g.some(x=>x.d===b))$('ppB').value=b}
+$('ppT').addEventListener('click',e=>{const a=e.target.getAttribute('data-sp');if(a){P.split(a);$('ppMsg').textContent='Se separó «'+a+'». Se aplicó en todas las hojas.'}});
+$('ppMerge').addEventListener('click',()=>{const a=$('ppA').value,b=$('ppB').value;if(!a||!b||a===b){$('ppMsg').textContent='Elige dos personas distintas.';return}P.merge(a,b);$('ppMsg').textContent='Se unió «'+a+'» dentro de «'+b+'». Se aplicó en todas las hojas.'});
+$('ppReset').addEventListener('click',()=>{P.reset();$('ppMsg').textContent='Se restableció. Vuelve a cargar tus bases para volver a detectar los nombres.'});
+$('tPeople').addEventListener('click',render);window.addEventListener('people-changed',render);render();
 })();
 </script>
 </body>
