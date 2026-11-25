@@ -173,6 +173,7 @@ window.__P={canon:canon,same:function(a,b){return canon(a)===canon(b)},list:func
 <button type="button" role="tab" id="tPeople" aria-selected="false">Personas</button>
 <div class="navgrp">Gestión</div>
 <button type="button" role="tab" id="tGer" aria-selected="false">Resumen gerencial</button>
+<button type="button" role="tab" id="tInc" aria-selected="false">Incentivos</button>
 </nav>
 <div id="vAn" hidden>
   <header>
@@ -467,6 +468,32 @@ window.__P={canon:canon,same:function(a,b){return canon(a)===canon(b)},list:func
     <li>La meta es editable y se aplica a todas las tablas y al acta.</li></ul></div>
 </div>
 </div>
+<div id="vInc" hidden>
+<header><div><h1>Incentivos por día</h1><p>Consolida CSAT, Leads, NPS, Acuracidad EA y Acuracidad PQC de tu equipo, dice si cada indicador se cumplió ese día y cuántos puntos dio. Carga las bases en sus pestañas y pulsa «Actualizar».</p></div></header>
+<div class="card"><h2>1. Traer datos de las demás hojas</h2>
+<p class="sub">Cada actualización guarda el resultado de cada día en este navegador, así el histórico se acumula día a día aunque cargues una base nueva.</p>
+<div class="btns"><button type="button" id="inRef" style="background:var(--ac);border-color:var(--ac);color:var(--sf)">Actualizar desde las demás hojas</button><button type="button" id="inClr">Borrar histórico guardado</button></div>
+<p class="mu" id="inMsg" role="status" style="margin:10px 0 0">Aún no hay datos.</p></div>
+<div class="card"><h2>2. Metas y puntos</h2>
+<p class="sub">Un indicador cumple cuando el resultado del día es igual o mayor a la meta. Los puntos se suman solo si cumple. Ajusta los puntos a la regla de tu plataforma.</p>
+<div class="tw"><table id="inSet"></table></div>
+<label style="display:flex;gap:8px;align-items:center;margin:10px 0 0"><input type="checkbox" id="inZero" style="width:auto"> En la exportación, un indicador sin datos ese día se envía como 0 (no cumplió)</label></div>
+<details class="card"><summary><b>Equipo (nombres y cédulas)</b> <span class="mu" id="inRN"></span></summary>
+<p class="sub" style="margin-top:8px">Una persona por línea: nombre, tabulador o punto y coma, cédula. Los nombres se cruzan con las bases aunque cambie el orden o falte una tilde.</p>
+<textarea id="inRos" rows="8"></textarea><div class="btns"><button type="button" id="inRSave">Guardar equipo</button></div></details>
+<div class="card"><h2>3. Resultado del día</h2>
+<div class="row row2" style="max-width:420px"><div><label for="inDay">Día</label><select id="inDay"></select></div></div>
+<div class="tw" style="margin-top:12px"><table id="inTab"></table></div></div>
+<div class="card"><h2>4. Subir a la plataforma de incentivos</h2>
+<p class="sub">Copia el bloque en el campo de registros del día elegido: una línea por registro, <code>cédula,indicador,1</code> (1 cumplió, 0 no cumplió).</p>
+<label for="inOut">Registros del día <b id="inFecha"></b></label><textarea id="inOut" rows="8" readonly></textarea>
+<div class="btns"><button type="button" id="inCopy" style="background:var(--ac);border-color:var(--ac);color:var(--sf)">Copiar registros</button><button type="button" id="inXls">Descargar Excel (todos los días)</button></div>
+<p class="mu" id="inCm" role="status" style="margin:8px 0 0"></p></div>
+<div class="card"><h2>5. Historial por especialista</h2>
+<p class="sub">Cómo le fue a una persona cada día y cuántos puntos sumó.</p>
+<div class="row row2" style="max-width:420px"><div><label for="inPer">Especialista</label><select id="inPer"></select></div></div>
+<div class="tw" style="margin-top:12px"><table id="inHist"></table></div></div>
+</div>
 <div id="vProd" hidden>
 <header><div><h1>Productividad</h1><p>Carga el reporte del Tipificador y mira qué tipo de casos se gestionan, quién gestiona más y en qué se concentra el trabajo, por equipo (Social Media o Tradicional) y por persona.</p></div></header>
 <div class="card">
@@ -615,6 +642,7 @@ header p{max-width:90ch}
   }).sort((a,b)=>b.metrics.rate-a.metrics.rate||b.metrics.opp-a.metrics.opp||a.name.localeCompare(b.name));
  }
  function metaV(){let v=parseFloat($('ldMeta').value);return isFinite(v)?v:80}
+ window.__ld={rows:function(){return leads},metric:metric,isOpp:isOpp,meta:metaV};
  const pr=(r,m)=>m.opp?'<b class="'+(r>=metaV()-1e-9?'sc-a':'sc-b')+'">'+r.toFixed(1)+'%</b>':'–';
  function group(rows,key){
   let m={};rows.forEach(r=>{let k=String(r[key]||'Sin dato').trim()||'Sin dato';(m[k]||(m[k]=[])).push(r)});
@@ -1228,8 +1256,8 @@ var dz=$a('drop');
 ['dragleave','drop'].forEach(function(ev){dz.addEventListener(ev,function(e){e.preventDefault();dz.classList.remove('on')})});
 dz.addEventListener('drop',function(e){handle(e.dataTransfer.files[0])});
 $a('fAg').addEventListener('change',render);$a('fRi').addEventListener('change',render);$a('csv').addEventListener('click',csv);
-function tab(n){['vAn','vMx','vCalc','vAc','vLeads','vGer','vProd','vPeople'].forEach(function(id,i){$a(id).hidden=i!==n});['tA','tM','tB','tAc','tLeads','tGer','tProd','tPeople'].forEach(function(id,i){$a(id).setAttribute('aria-selected',i===n)})}
-$a('tA').addEventListener('click',function(){tab(0)});$a('tM').addEventListener('click',function(){tab(1)});$a('tB').addEventListener('click',function(){tab(2)});$a('tAc').addEventListener('click',function(){tab(3)});$a('tLeads').addEventListener('click',function(){tab(4)});$a('tGer').addEventListener('click',function(){tab(5)});$a('tProd').addEventListener('click',function(){tab(6)});$a('tPeople').addEventListener('click',function(){tab(7)});
+function tab(n){['vAn','vMx','vCalc','vAc','vLeads','vGer','vProd','vPeople','vInc'].forEach(function(id,i){$a(id).hidden=i!==n});['tA','tM','tB','tAc','tLeads','tGer','tProd','tPeople','tInc'].forEach(function(id,i){$a(id).setAttribute('aria-selected',i===n)})}
+$a('tA').addEventListener('click',function(){tab(0)});$a('tM').addEventListener('click',function(){tab(1)});$a('tB').addEventListener('click',function(){tab(2)});$a('tAc').addEventListener('click',function(){tab(3)});$a('tLeads').addEventListener('click',function(){tab(4)});$a('tGer').addEventListener('click',function(){tab(5)});$a('tProd').addEventListener('click',function(){tab(6)});$a('tPeople').addEventListener('click',function(){tab(7)});$a('tInc').addEventListener('click',function(){tab(8)});
 // Mostrar LEADS al entrar por primera vez para que el cargador quede a la vista.
 tab(4);
 function re(){if(LAST){try{D=analyze(LAST);render()}catch(e){}}}
@@ -2512,5 +2540,63 @@ $('ppReset').addEventListener('click',()=>{P.reset();$('ppMsg').textContent='Se 
 $('tPeople').addEventListener('click',render);window.addEventListener('people-changed',render);render();
 })();
 </script>
+<script>
+(function(){
+var $=function(i){return document.getElementById(i)},KEY='ccc_incent_v1',P=window.__P;
+var IND=['CSAT','Leads','NPS','Acuracidad EA','Acuracidad PQC'];
+var ROS0='Andres Eduardo Reina Rangel;5061800\nAnyi Lorena Cardenas Correa;1107057069\nCristhian Ivan Buenaños Montaño;1144205688\nDiana Marcela Melo Martinez;1118285173\nHeide Alexandra Diaz Londoño;1111539186\nJefry Joel Betancur Imbachil;1005830244\nJerson Javier Ruiz Lopez;1006234131\nKenneth Guillermo Rodriguez Gil;1107835365\nLuisa Fernanda Cifuentes Grajales;1130678094\nNikol Adriana Muñoz Muñoz;1002879281\nValentina Delgado Pizo;1006102411';
+var ST={ros:ROS0,meta:{'CSAT':70,'Leads':80,'NPS':50,'Acuracidad EA':95,'Acuracidad PQC':97},pts:{'CSAT':10,'Leads':10,'NPS':10,'Acuracidad EA':10,'Acuracidad PQC':10},zero:false,snap:{}};
+try{var z=JSON.parse(localStorage.getItem(KEY)||'null');if(z)for(var k in z)ST[k]=z[k]}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(ST))}catch(e){}}
+function esc(t){return String(t==null?'':t).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function dlab(d){var p=d.split('-');return p[2]+'/'+p[1]+'/'+p[0]}
+function iso(y,m,d){return(+y)+'-'+('0'+m).slice(-2)+'-'+('0'+d).slice(-2)}
+function roster(){return ST.ros.split(/\n/).map(function(l){var m=/^(.*?)\s*[\t;]\s*([\d.\s]+)$/.exec(l.trim())||/^(.*\D)\s+(\d{5,})$/.exec(l.trim());return m?{name:m[1].trim(),ced:m[2].replace(/\D/g,'')}:null}).filter(Boolean)}
+function key(n){return P?P.canon(n):String(n)}
+function fmt(i,v){return i==='NPS'?String(Math.round(v)):v.toFixed(1)+'%'}
+function st(i,e){return(!e||e.v==null||!e.n)?'nd':(e.v>=ST.meta[i]-1e-9?'ok':'no')}
+function pts(day,ced){var t=0,o=(ST.snap[day]||{})[ced]||{};IND.forEach(function(i){if(st(i,o[i])==='ok')t+=+ST.pts[i]||0});return t}
+function cell(i,e){var s=st(i,e);if(s==='nd')return'<span class="mu">–</span>';return'<span class="'+(s==='ok'?'sc-a':'sc-b')+'"><b>'+fmt(i,e.v)+'</b> '+(s==='ok'?'✔':'✘')+'</span><span class="sm">'+e.n+' '+(i==='Leads'?'oport.':i==='NPS'||i==='CSAT'?'encuestas':'casos')+'</span>'}
+function leadDay(rows){var a=false,b=false;rows.forEach(function(r){var m=/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.]\d{2,4}/.exec(String(r.Data||'').trim());if(m){if(+m[1]>12)a=true;if(+m[2]>12)b=true}});var mdy=b&&!a;
+ return function(v){var x=String(v==null?'':v).trim(),m=/^(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})/.exec(x);if(m)return iso(m[1],m[2],m[3]);m=/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/.exec(x);if(!m)return'';var y=+m[3];if(y<100)y+=2000;return mdy?iso(y,m[1],m[2]):iso(y,m[2],m[1])}}
+function put(day,ced,i,v,n){if(!/^\d{4}-\d\d-\d\d$/.test(day))return;((ST.snap[day]=ST.snap[day]||{})[ced]=ST.snap[day][ced]||{})[i]={v:v,n:n}}
+function refresh(){
+ var R=roster(),by={},src={n:0,a:0,l:0},seen={};R.forEach(function(r){by[key(r.name)]=r});
+ function grp(list,dayf,namef,fn){var m={};list.forEach(function(c){var r=by[key(namef(c))],d=dayf(c);if(!r||!d)return;var k=d+'|'+r.ced;(m[k]=m[k]||{d:d,r:r,l:[]}).l.push(c);seen[r.ced]=1});Object.keys(m).forEach(function(k){fn(m[k].d,m[k].r,m[k].l)})}
+ if(window.__x){var all=__x.allCurrent();src.n=all.length;grp(all,function(c){return c.day},function(c){return c.ag},function(d,r,l){var q=__x.calc(l);if(q.ct)put(d,r.ced,'CSAT',q.cp/q.ct*100,q.ct);if(q.nt)put(d,r.ced,'NPS',(q.np-q.nd)/q.nt*100,q.nt)})}
+ if(window.__ac){var rows=__ac.rows();src.a=rows.length;grp(rows,function(c){return c.day},function(c){return c.esp},function(d,r,l){var q=__ac.ind(l);if(q.ae.n)put(d,r.ced,'Acuracidad EA',q.ae.v,q.ae.n);if(q.pqc.n)put(d,r.ced,'Acuracidad PQC',q.pqc.v,q.pqc.n)})}
+ if(window.__ld){var lr=__ld.rows();src.l=lr.length;var df=leadDay(lr);grp(lr,function(c){return df(c.Data)},function(c){return c['Case Owner']},function(d,r,l){var q=__ld.metric(l);if(q.opp)put(d,r.ced,'Leads',q.rate,q.opp)})}
+ save();render();
+ var sd=Object.keys(ST.snap).length;$('inMsg').textContent=src.n+src.a+src.l?'NPS/CSAT: '+src.n+' casos · Acuracidad: '+src.a+' filas · Leads: '+src.l+' registros. Personas del equipo con datos: '+Object.keys(seen).length+' de '+R.length+'. Días guardados: '+sd+'.':'Aún no hay bases cargadas en las otras pestañas. Cárgalas y vuelve a pulsar Actualizar.'+(sd?' Se muestra el histórico guardado ('+sd+' días).':'')}
+function days(){return Object.keys(ST.snap).sort().reverse()}
+function render(keep){
+ var R=roster(),D=days(),cur=$('inDay').value,pc=$('inPer').value;
+ $('inRN').textContent='· '+R.length+' personas';
+ if(!keep)$('inSet').innerHTML='<tr><th>Indicador</th><th>Meta (cumple si ≥)</th><th>Puntos si cumple</th></tr>'+IND.map(function(i){return'<tr><td><b>'+i+'</b></td><td><input type="number" step="0.1" data-m="'+i+'" value="'+ST.meta[i]+'" style="max-width:110px"></td><td><input type="number" step="1" data-p="'+i+'" value="'+ST.pts[i]+'" style="max-width:110px"></td></tr>'}).join('');
+ $('inZero').checked=!!ST.zero;
+ $('inDay').innerHTML=D.length?D.map(function(d){return'<option value="'+d+'">'+dlab(d)+'</option>'}).join(''):'<option value="">Sin días</option>';if(D.indexOf(cur)>=0)$('inDay').value=cur;
+ $('inPer').innerHTML=R.map(function(r){return'<option value="'+r.ced+'">'+esc(r.name)+'</option>'}).join('');if(pc)$('inPer').value=pc;
+ var d=$('inDay').value,o=ST.snap[d]||{};
+ $('inTab').innerHTML=d?'<tr><th>Especialista</th>'+IND.map(function(i){return'<th>'+i+'</th>'}).join('')+'<th>Cumplidos</th><th>Puntos</th></tr>'+R.map(function(r){var e=o[r.ced]||{},c=IND.filter(function(i){return st(i,e[i])==='ok'}).length;return'<tr><td><b>'+esc(r.name)+'</b><span class="sm">'+r.ced+'</span></td>'+IND.map(function(i){return'<td>'+cell(i,e[i])+'</td>'}).join('')+'<td>'+c+' de 5</td><td><b>'+pts(d,r.ced)+'</b></td></tr>'}).join(''):'<tr><td class="mu">Pulsa «Actualizar desde las demás hojas» para traer los resultados.</td></tr>';
+ var L=[];if(d)R.forEach(function(r){var e=o[r.ced]||{};IND.forEach(function(i){var s=st(i,e[i]);if(s==='nd'&&!ST.zero)return;L.push(r.ced+','+i+','+(s==='ok'?1:0))})});
+ $('inOut').value=L.join('\n');$('inFecha').textContent=d?'('+dlab(d)+')':'';
+ var p=$('inPer').value,tot=0,rr=D.slice().reverse().map(function(x){var e=(ST.snap[x]||{})[p];if(!e)return'';var q=pts(x,p);tot+=q;return'<tr><td>'+dlab(x)+'</td>'+IND.map(function(i){return'<td>'+cell(i,e[i])+'</td>'}).join('')+'<td><b>'+q+'</b></td></tr>'}).join('');
+ $('inHist').innerHTML=rr?'<tr><th>Día</th>'+IND.map(function(i){return'<th>'+i+'</th>'}).join('')+'<th>Puntos del día</th></tr>'+rr+'<tr><td><b>Total</b></td><td colspan="5"></td><td><b>'+tot+'</b></td></tr>':'<tr><td class="mu">Sin resultados guardados para esta persona.</td></tr>'}
+$('inSet').addEventListener('input',function(e){var m=e.target.getAttribute('data-m'),p=e.target.getAttribute('data-p'),v=parseFloat(e.target.value);if(isNaN(v))return;if(m)ST.meta[m]=v;if(p)ST.pts[p]=v;save();render(true)});
+$('inZero').addEventListener('change',function(){ST.zero=$('inZero').checked;save();render(true)});
+$('inDay').addEventListener('change',render);$('inPer').addEventListener('change',render);
+$('inRef').addEventListener('click',refresh);$('tInc').addEventListener('click',refresh);window.addEventListener('people-changed',function(){if(!$('vInc').hidden)refresh()});
+$('inClr').addEventListener('click',function(){if(confirm('Se borrará el histórico de incentivos guardado en este navegador. ¿Continuar?')){ST.snap={};save();render();$('inMsg').textContent='Histórico borrado.'}});
+$('inRSave').addEventListener('click',function(){ST.ros=$('inRos').value;save();refresh()});
+$('inRos').value=ST.ros;
+$('inCopy').addEventListener('click',function(){var t=$('inOut').value;if(!t){$('inCm').textContent='No hay registros para copiar.';return}navigator.clipboard.writeText(t).then(function(){$('inCm').textContent='Copiado: '+t.split('\n').length+' registros.'}).catch(function(){$('inOut').select();$('inCm').textContent='Selecciona el texto y cópialo con Ctrl+C.'})});
+$('inXls').addEventListener('click',function(){var R=roster(),D=days().slice().reverse();if(!D.length){$('inCm').textContent='Primero actualiza para tener días.';return}if(typeof XLSX==='undefined'){$('inCm').textContent='No cargó la librería de Excel. Revisa tu conexión.';return}
+ var pl=[['Fecha','Cédula','Indicador','Cumplió (1/0)']],de=[['Fecha','Especialista','Cédula','Indicador','Resultado','Base (casos/encuestas)','Meta','Estado','Puntos']],rs=[['Fecha','Especialista','Cédula'].concat(IND).concat(['Cumplidos','Puntos del día'])];
+ D.forEach(function(d){R.forEach(function(r){var e=(ST.snap[d]||{})[r.ced]||{},row=[dlab(d),r.name,r.ced],c=0;IND.forEach(function(i){var s=st(i,e[i]);if(s==='ok')c++;row.push(s==='nd'?'Sin datos':s==='ok'?'Cumplió':'No cumplió');if(s!=='nd'||ST.zero)pl.push([dlab(d),r.ced,i,s==='ok'?1:0]);de.push([dlab(d),r.name,r.ced,i,s==='nd'?'':Math.round(e[i].v*100)/100,s==='nd'?'':e[i].n,ST.meta[i],s==='nd'?'Sin datos':s==='ok'?'Cumplió':'No cumplió',s==='ok'?+ST.pts[i]||0:0])});rs.push(row.concat([c,pts(d,r.ced)]))})});
+ var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rs),'Resumen por día');XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(de),'Detalle');XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(pl),'Para plataforma');XLSX.writeFile(wb,'Incentivos.xlsx')});
+render();
+})();
+</script>
+
 </body>
 </html>
