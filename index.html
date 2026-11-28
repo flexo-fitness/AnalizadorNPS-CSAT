@@ -642,7 +642,11 @@ header p{max-width:90ch}
   }).sort((a,b)=>b.metrics.rate-a.metrics.rate||b.metrics.opp-a.metrics.opp||a.name.localeCompare(b.name));
  }
  function metaV(){let v=parseFloat($('ldMeta').value);return isFinite(v)?v:80}
- window.__ld={rows:function(){return leads},metric:metric,isOpp:isOpp,meta:metaV};
+ function leadIso(v,txt){const p=n=>('0'+n).slice(-2);
+   if(typeof v==='number'&&v>20000&&v<80000){const d=new Date(Date.UTC(1899,11,30)+Math.floor(v)*86400000);return d.getUTCFullYear()+'-'+p(d.getUTCMonth()+1)+'-'+p(d.getUTCDate())}
+   if(v instanceof Date&&!isNaN(v))return v.getFullYear()+'-'+p(v.getMonth()+1)+'-'+p(v.getDate());
+   const x=String(v!=null&&v!==''?v:txt||'').trim(),m=/^(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})/.exec(x);return m?m[1]+'-'+p(+m[2])+'-'+p(+m[3]):''}
+window.__ld={rows:function(){return leads},metric:metric,isOpp:isOpp,meta:metaV};
  const pr=(r,m)=>m.opp?'<b class="'+(r>=metaV()-1e-9?'sc-a':'sc-b')+'">'+r.toFixed(1)+'%</b>':'–';
  function group(rows,key){
   let m={};rows.forEach(r=>{let k=String(r[key]||'Sin dato').trim()||'Sin dato';(m[k]||(m[k]=[])).push(r)});
@@ -693,6 +697,8 @@ header p{max-width:90ch}
     if(!wb.SheetNames||!wb.SheetNames.length)throw Error('El archivo no contiene hojas de cálculo.');
     let chosen=wb.SheetNames[0],ws=wb.Sheets[chosen];
     let matrix=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:false,blankrows:false});
+    let rawMatrix=[];try{let wb2=XLSX.read(data,{type:'array',cellDates:false});rawMatrix=XLSX.utils.sheet_to_json(wb2.Sheets[chosen],{header:1,defval:'',raw:true,blankrows:false})}catch(_){}
+    const rawOf=new Map();matrix.forEach((row,i)=>rawOf.set(row,rawMatrix[i]));
     if(!matrix.length)throw Error('La primera hoja está vacía.');
     const aliases={
       'Data':['data','date','fecha','createddate','fechacreacion'],
@@ -729,7 +735,7 @@ header p{max-width:90ch}
       const hasMetric=String(cellAt(row,'Sales Chances')).trim()!==''||String(cellAt(row,'Link Sent')).trim()!=='';
       return hasId&&hasMetric;
     });
-    leads=dataRows.map(row=>{let o={};cols.forEach(c=>{let ci=headerMap[c];o[c]=ci===undefined?'':(row[ci]===undefined?'':clean(row[ci]))});o._co=o['Case Owner'];o['Case Owner']=window.__P.canon(o._co,'Leads');return o});
+    leads=dataRows.map(row=>{let o={};cols.forEach(c=>{let ci=headerMap[c];o[c]=ci===undefined?'':(row[ci]===undefined?'':clean(row[ci]))});const rr=rawOf.get(row);o._iso=leadIso(rr?rr[headerMap['Data']]:undefined,o.Data);o._co=o['Case Owner'];o['Case Owner']=window.__P.canon(o._co,'Leads');return o});
     if(!leads.length)throw Error('Encontré los encabezados en la fila '+(headerIndex+1)+', pero no hay registros debajo.');
     [['ldAgent','Case Owner'],['ldBrand','Marca'],['ldSystem','Sistema'],['ldCountry','País'],['ldChannel','Canal'],['ldGroup','Group'],['ldType','Tipo']].forEach(([id,key])=>options(id,key,leads));
     $('ldResults').hidden=false;
@@ -2565,7 +2571,7 @@ function refresh(){
  function grp(list,dayf,namef,fn){var m={};list.forEach(function(c){var nm=namef(c),r=by[key(nm)],d=dayf(c);if(!r){var o=MISS[TAG]=MISS[TAG]||{},k0=String(nm||'(vacío)');o[k0]=(o[k0]||0)+1;return}if(!d){NODAY[TAG]=(NODAY[TAG]||0)+1;return}var k=d+'|'+r.ced;(m[k]=m[k]||{d:d,r:r,l:[]}).l.push(c);seen[r.ced]=1});Object.keys(m).forEach(function(k){fn(m[k].d,m[k].r,m[k].l)})}
  try{TAG='NPS/CSAT';if(window.__x){var all=__x.allCurrent();src.n=all.length;grp(all,function(c){return c.day},function(c){return c.ag},function(d,r,l){var q=__x.calc(l);if(q.ct)put(d,r.ced,'CSAT',q.cp/q.ct*100,q.ct);if(q.nt)put(d,r.ced,'NPS',(q.np-q.nd)/q.nt*100,q.nt)})}}catch(e){ERR.push('NPS/CSAT: '+e.message)}
  try{TAG='Acuracidad';if(window.__ac){var rows=__ac.rows();src.a=rows.length;grp(rows,function(c){return c.day},function(c){return c.esp},function(d,r,l){var q=__ac.ind(l);if(q.ae.n)put(d,r.ced,'Acuracidad EA',q.ae.v,q.ae.n);if(q.pqc.n)put(d,r.ced,'Acuracidad PQC',q.pqc.v,q.pqc.n)})}}catch(e){ERR.push('Acuracidad: '+e.message)}
- try{TAG='Leads';if(window.__ld){var lr=__ld.rows();src.l=lr.length;var df=leadDay(lr);grp(lr,function(c){return df(c.Data)},function(c){return c['Case Owner']},function(d,r,l){var q=__ld.metric(l);if(q.opp)put(d,r.ced,'Leads',q.rate,q.opp)})}}catch(e){ERR.push('Leads: '+e.message)}
+ try{TAG='Leads';if(window.__ld){var lr=__ld.rows();src.l=lr.length;var df=leadDay(lr);grp(lr,function(c){return c._iso||df(c.Data)},function(c){return c['Case Owner']},function(d,r,l){var q=__ld.metric(l);if(q.opp)put(d,r.ced,'Leads',q.rate,q.opp)})}}catch(e){ERR.push('Leads: '+e.message)}
  function diag(){var o='';Object.keys(MISS).forEach(function(t){var a=Object.keys(MISS[t]).sort(function(x,y){return MISS[t][y]-MISS[t][x]}).slice(0,8);if(a.length)o+=' ⚠ '+t+' — nombres que NO coinciden con el equipo y por eso no suman: '+a.map(function(n){return n+' ('+MISS[t][n]+')'}).join(', ')+'.'});Object.keys(NODAY).forEach(function(t){if(NODAY[t])o+=' ⚠ '+t+': '+NODAY[t]+' filas sin fecha válida (no se usaron).'});if(ERR.length)o+=' ⚠ Error: '+ERR.join(' | ');return o}
  save();render();
  var sd=Object.keys(ST.snap).length;$('inMsg').textContent=src.n+src.a+src.l?'NPS/CSAT: '+src.n+' casos · Acuracidad: '+src.a+' filas · Leads: '+src.l+' registros. Personas del equipo con datos: '+Object.keys(seen).length+' de '+R.length+'. Días guardados: '+sd+'.':'Aún no hay bases cargadas en las otras pestañas. Cárgalas y vuelve a pulsar Actualizar.'+(sd?' Se muestra el histórico guardado ('+sd+' días).':'');$('inMsg').textContent+=diag()}
